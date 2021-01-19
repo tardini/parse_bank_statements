@@ -6,6 +6,16 @@ import tkinter.scrolledtext as st
 from tkinter import ttk
 from tkinter import filedialog as tkfd
 import bank_fmt as bd
+import numpy as np
+import matplotlib.pylab as plt
+from matplotlib.ticker import MaxNLocator
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+try:
+    from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk as nt2tk
+except:
+    from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg as nt2tk
+
 
 info_text = \
 '''The app expects a directory structure of the type:
@@ -19,6 +29,7 @@ PDF files are converted (una tantum) into CSV, based on the open source java-bas
 
 Supported banks: SSKM-Gyrokonto, Ing.Diba, SSKM-Visa-Kreditkarte
 '''
+
 
 def pdf2csv(fpdf, fcsv, bank):
     '''Convert a PDF statement into csv text format'''
@@ -34,6 +45,28 @@ def pdf2csv(fpdf, fcsv, bank):
             log = 'Converting %s into %s\n' %(fpdf, fcsv)
 
     return log
+
+
+def plot_time(year_beg, year_end, amount, fig_time):
+
+
+    fig_time.clf()
+    fig_time.subplots_adjust(left=0.15, bottom=0.15, right=0.95, top=0.92, hspace=0)
+
+    ax = fig_time.add_subplot(1, 1, 1)
+    ax.set_xlabel('Year')
+    ax.set_ylabel('Money \u20ac')
+    xax = ax.get_xaxis()
+    xax.grid(True, which='major')
+    xax.set_major_locator(MaxNLocator(integer=True))
+    if (max(amount) > 0) and (min(amount) >= 0):
+        ax.set_ylim([0, 1.1*max(amount)])
+    elif (min(amount) < 0) and (max(amount) <= 0):
+        ax.set_ylim([1.1*min(amount), 0])
+    ax.plot(range(year_beg, year_end+1), amount, color='g', marker='o')
+    ax.ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
+    ax.yaxis.major.formatter._useMathText = True
+    fig_time.canvas.draw()
 
 
 def isdate_y4(str_in):
@@ -260,7 +293,7 @@ class pcsv_gui:
         pcsvmain = tk.Tk()
         import pcsv_style
         pcsvmain.title('Bank-statement parser')
-        pcsvmain.geometry('600x600')
+        pcsvmain.geometry('800x600')
         pcsvmain.configure(background=pcsv_style.frc)
 
 # Menubar
@@ -293,7 +326,12 @@ class pcsv_gui:
         
         for frame in btframe, bankframe, wordframe, dirframe, year1frame, year2frame, amountframe:
             frame.pack(side=tk.TOP, anchor=tk.W, pady=5)      
+
         outframe.pack(side=tk.TOP, anchor=tk.W, pady=5, expand=1, fill=tk.BOTH)
+        txtframe = ttk.Frame(outframe, width=200)
+        canframe = ttk.Frame(outframe, width=400)
+        txtframe.pack(side=tk.LEFT, anchor=tk.W, fill=tk.Y)
+        canframe.pack(side=tk.LEFT, anchor=tk.W, expand=1, fill=tk.BOTH)
 
         ttk.Button(btframe, text='Parse statements', command=self.parse, width=16).pack(side=tk.LEFT)
 
@@ -330,16 +368,24 @@ class pcsv_gui:
         self.year_end.pack(side=tk.LEFT)
 
         ttk.Label(amountframe, text='Total').pack(side=tk.LEFT)
-        self.amount = tk.StringVar()
-        amnt = ttk.Entry(amountframe, width=12, textvariable=self.amount)
+        self.amount_wid = tk.StringVar()
+        amnt = ttk.Entry(amountframe, width=12, textvariable=self.amount_wid)
         amnt.insert(0, '')
         amnt.pack(side=tk.LEFT)
 
-        self.txt = st.ScrolledText(outframe, undo=True)
+        self.txt = st.ScrolledText(txtframe, undo=True, width=40)
         self.txt['font'] = ('Arial', '10')
         self.txt.pack(expand=1, fill=tk.BOTH)
 
+# Initialise plot
+        self.fig_time = Figure(figsize=(4., 3.), dpi=100)
+        can_time = FigureCanvasTkAgg(self.fig_time, master=canframe)
+        can_time._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        toolbar = nt2tk(can_time, canframe)
+        toolbar.update()
+
         pcsvmain.mainloop()
+
 
     def sel(self):
         self.bank = self.bank_wid.get().strip()
@@ -399,32 +445,38 @@ class pcsv_gui:
                             out_str = 'date: %s  ' %tra['date']
                             if tra['amount'] is not None:
                                 tot_year += tra['amount']
-                                out_str += 'amount: %11.4f' %tra['amount']
+                                out_str += '%9.2f\u20ac' %tra['amount']
                             out_str += '\n'
                             self.txt.insert(tk.INSERT, out_str)
                             break
-        self.txt.insert(tk.INSERT, '\nAmount for dir %s, keyword %s: %10.4f\n\n' %(dir_in, self.word, tot_year))
+        self.txt.insert(tk.INSERT, '\n%s\nkeyword "%s": %10.4f\u20ac\n\n' %(dir_in, self.word, tot_year))
 
         return tot_year
 
 
-    def parse(self):
+    def parse(self, plot=True):
 
         self.bank = self.bank_wid.get().strip()
         self.word = self.word_wid.get().strip()
         dir_root = self.dir_wid.get().strip()
         year_beg = int(self.year_beg.get())
         year_end = int(self.year_end.get())
-        all_time = 0
+        amount = []
+        all_time= 0
         self.txt.delete('1.0', tk.END)
         for year in range(year_beg, year_end+1):
             dir_in = '%s/%d' %(dir_root, year)
             if os.path.isdir(dir_in):
-                tot_year = self.parse_year(dir_in)
-                all_time += tot_year
-        self.amount.set('%11.2f' %all_time)
-
-
+                balance = self.parse_year(dir_in)
+                self.txt.update()
+                amount.append(balance)
+                all_time += balance
+            else:
+                amount.append(0)
+        self.amount_wid.set('%11.2f' %all_time)
+        if plot:
+            plot_time(year_beg, year_end, amount, self.fig_time)
+            
 if __name__ == '__main__':
 
     pcsv_gui()
