@@ -28,7 +28,7 @@ def pdf2csv(fpdf, fcsv, bank):
         import tabula
     except:
         print('Module tabula-py not found, skipping PDF->csv')
-        return
+        return ''
 
     if not os.path.isfile(fpdf):
         log = 'File %s not found\n' %fpdf

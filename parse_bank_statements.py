@@ -478,7 +478,8 @@ class pbs_gui:
                 fpdf = fname
             fcsv = os.path.splitext(fpdf)[0] + '.csv'
             log = pdf2csv.pdf2csv(fpdf, fcsv, self.bank)
-            self.txt.insert('insert', log)
+            if log is not None:
+                self.txt.insert('insert', log)
             if self.bank in ('sskm', 'ksk'):
                 tras = csv2tras_sskm(fcsv)
             elif self.bank == 'diba':
@@ -498,7 +499,7 @@ class pbs_gui:
                             out_str += '\n'
                             self.txt.insert('insert', out_str)
                             break
-        self.txt.insert('insert', '\n%s\nkeyword "%s": %10.4f\u20ac\n\n' %(dir_in, self.word, tot_year))
+        self.txt.insert('insert', '\n%s\nkeyword "%s": %8.2f\u20ac\n\n' %(dir_in, self.word, tot_year))
 
         return tot_year
 
