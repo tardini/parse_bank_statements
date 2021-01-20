@@ -23,7 +23,7 @@ info_text = \
     <bank_statements_path>/2019
     <bank_statements_path>/2020
 and the statements to be PDF.
-Each bank has its <bank_statements_path>, this can be stored from the GUI and will be loaded in future usage.
+Each bank has its <bank_statements_path>, this can be stored from the GUI and will be loaded on future usage.
 
 PDF files are converted (una tantum) into CSV, based on the open source java-based package tabula-py (see https://pypi.org/project/tabula-py).
 
