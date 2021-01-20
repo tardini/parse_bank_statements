@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, sys, csv
+import os, sys, re, csv, webbrowser
 import tkinter as tk
 import tkinter.scrolledtext as st
 from tkinter import ttk
@@ -24,18 +24,74 @@ ref_diba  = 'Referenz:'
 end_str = {'sskm': 'Der Kon', 'ksk': 'Der Kon', 'diba': 'Kunden-In', 'visa': 'Sehr'}
 
 info_text = \
-'''The app expects a directory structure of the type:
+'''PARSE BANK STATEMENTS
+
+Author: Giovanni Tardini
+Date: January 20th 2021
+
+The app expects a directory structure of the type:
     <bank_statements_path>/2018
     <bank_statements_path>/2019
     <bank_statements_path>/2020
 and the statements to be PDF.
 Each bank has its <bank_statements_path>, this can be stored from the GUI and will be loaded on future usage.
 
-PDF files are converted (una tantum) into CSV, based on the open source java-based package tabula-py (see https://pypi.org/project/tabula-py).
+PDF files are converted (una tantum) into CSV, based on the open source java-based package <a href="https://pypi.org/project/tabula-py">tabula-py</a>.
 
 Supported banks: SSKM-Gyrokonto, Ing.Diba, SSKM-Visa-Kreditkarte, KSKMSE
+
+Web docu at <a href="https://www2.ipp.mpg.de/~git/pbs/index.html">Statement Parser</a> page.
+
+Repository <a href="https://github.com/tardini/parse_bank_statements.git">PBS github</a> 
 '''
 
+os.environ['BROWSER'] = '/usr/bin/google-chrome'
+
+
+def formatHyperLink(text, message):
+
+    url_tag_beg = '<a href="'
+    url_tag_mid = '">'
+    url_tag_end = '</a>'
+    re_str = r'%s(?P<address>.*?)%s(?P<title>.*?)%s' %(url_tag_beg, url_tag_mid, url_tag_end)
+    hyperlinkPattern = re.compile(re_str)
+
+    start = 0
+    text_str = ''
+    for index, match in enumerate(hyperlinkPattern.finditer(message)):
+        groups = match.groupdict()
+        tag_id = 'URL%d' %index
+
+        plain_text = message[start: match.start()]
+        text.insert("end", plain_text)
+        text_str += plain_text
+        
+        url_beg = len(text_str)
+        url = groups['title']
+        text.insert("end", url)
+        text_str += url
+        url_end = len(text_str)
+
+        text.tag_add(tag_id, "1.0+%dc" %url_beg, "1.0+%dc" %url_end)
+        text.tag_config(tag_id,
+                        foreground="blue",
+                        underline=1)
+        text.tag_bind(tag_id,
+                      "<Enter>",
+                      lambda *a, **k: text.config(cursor="arrow"))
+        text.tag_bind(tag_id,
+                      "<Leave>",
+                      lambda *a, **k: text.config(cursor="arrow"))
+        text.tag_bind(tag_id,
+                      "<Button-1>",
+                      _openbrowser(groups['address']))
+
+        start = match.end()
+
+
+def _openbrowser(url):
+
+    return lambda *args, **kwargs: webbrowser.open(url)
 
 def plot_time(year_beg, year_end, amount, fig_time):
 
@@ -275,13 +331,6 @@ def csv2tras_diba(fcsv):
     return transactions
 
 
-def about():
-
-    import tkhyper
-    mytext = 'Documentation at the <a href="https://www2.ipp.mpg.de/~git/pbs/index.html">Statement Parser</a>'
-    h = tkhyper.HyperlinkMessageBox("Help", mytext, "340x60")
-
-
 class pbs_gui:
 
 
@@ -305,7 +354,6 @@ class pbs_gui:
 
         helpmenu = tk.Menu(menubar, tearoff=0)
         helpmenu.add_command(label="Info"    , command=self.info)
-        helpmenu.add_command(label="Web docu", command=about)
 
         menubar.add_cascade(label = "File", menu=filemenu)
         menubar.add_cascade(label = "Help", menu=helpmenu)
@@ -376,6 +424,8 @@ class pbs_gui:
         self.txt['font'] = ('Arial', '10')
         self.txt.pack(expand=1, fill=tk.BOTH)
 
+        formatHyperLink(self.txt, info_text)
+
 # Initialise plot
         self.fig_time = Figure(figsize=(4., 3.), dpi=100)
         can_time = FigureCanvasTkAgg(self.fig_time, master=canframe)
@@ -398,7 +448,8 @@ class pbs_gui:
     def info(self):
     
         self.txt.delete('1.0', tk.END)
-        self.txt.insert(tk.INSERT, info_text)
+        formatHyperLink(self.txt, info_text)
+#       self.txt.insert(tk.INSERT, info_text)
 
     def save_dir(self):
         try:
