@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import os, sys, csv # project tabula-py, requiring Java
-import tabula
 
 help = """
 AREA boundaries: (top-y, left-x, bottom-y, right-x).
@@ -24,6 +23,12 @@ cols = { \
 
 def pdf2csv(fpdf, fcsv, bank):
     '''Convert a PDF statement into csv text format'''
+
+    try:
+        import tabula
+    except:
+        print('Module tabula-py not found, skipping PDF->csv')
+        return
 
     if not os.path.isfile(fpdf):
         log = 'File %s not found\n' %fpdf
