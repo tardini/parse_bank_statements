@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
-import os, sys, csv # project tabula-py, requiring Java
+import os, sys, csv
 import tkinter as tk
 import tkinter.scrolledtext as st
 from tkinter import ttk
 from tkinter import filedialog as tkfd
-import bank_fmt as bd
+import pdf2csv
 import numpy as np
 import matplotlib.pylab as plt
 from matplotlib.ticker import MaxNLocator
@@ -16,6 +16,12 @@ try:
 except:
     from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg as nt2tk
 
+iban_sskm = 'Gläubiger-ID:'
+
+mand_diba = 'Mandat:'
+ref_diba  = 'Referenz:'
+
+end_str = {'sskm': 'Der Kon', 'ksk': 'Der Kon', 'diba': 'Kunden-In', 'visa': 'Sehr'}
 
 info_text = \
 '''The app expects a directory structure of the type:
@@ -27,24 +33,8 @@ Each bank has its <bank_statements_path>, this can be stored from the GUI and wi
 
 PDF files are converted (una tantum) into CSV, based on the open source java-based package tabula-py (see https://pypi.org/project/tabula-py).
 
-Supported banks: SSKM-Gyrokonto, Ing.Diba, SSKM-Visa-Kreditkarte
+Supported banks: SSKM-Gyrokonto, Ing.Diba, SSKM-Visa-Kreditkarte, KSKMSE
 '''
-
-
-def pdf2csv(fpdf, fcsv, bank):
-    '''Convert a PDF statement into csv text format'''
-    import tabula
-
-    if not os.path.isfile(fpdf):
-        log = 'File %s not found\n' %fpdf
-    else:
-        if os.path.isfile(fcsv):
-            log = ''
-        else:
-            tabula.convert_into(fpdf, fcsv, output_format="csv", pages="all", area=bd.area[bank], columns=bd.cols[bank], silent=True)
-            log = 'Converting %s into %s\n' %(fpdf, fcsv)
-
-    return log
 
 
 def plot_time(year_beg, year_end, amount, fig_time):
@@ -142,8 +132,16 @@ def csv2tras_sskm(fcsv):
         csvreader = csv.reader(csvfile, quotechar='"')
         for line in csvreader:
             if len(line) < 5:
-                print('LINE too short', line)
-                continue
+                if len(line) == 4:
+                    a = amount_sskm(line[3])
+                    if a is not None:
+                        line.append('')
+                    else:
+                        continue
+                else:
+                    print('LINE too short', line)
+                    continue
+
             date       = line[0].strip()
             date_val   = line[1].strip()
             descr_line = line[2].strip()
@@ -156,8 +154,8 @@ def csv2tras_sskm(fcsv):
                             tra['descr'] += '\n' + descr_line
             elif isdate_y4(date_val): # new transaction
                 if 'tra' in locals():
-                    if bd.iban_sskm in tra['descr']:
-                        descr, tra['iban'] = tra['descr'].split(bd.iban_sskm, 1)
+                    if iban_sskm in tra['descr']:
+                        descr, tra['iban'] = tra['descr'].split(iban_sskm, 1)
                         tra['iban'] = tra['iban'].strip()
                         tra['descr'] = descr.strip()
                     else:
@@ -183,7 +181,7 @@ def csv2tras_sskm(fcsv):
                     tra['amount'] = minus
                 else:
                     tra['amount'] = amount_sskm(amount_out)
-            elif bd.end_str['sskm'] in date:
+            elif end_str['sskm'] in date:
                 if 'tra' in locals():
                     transactions.append(tra)
                 break
@@ -225,7 +223,7 @@ def csv2tras_visa(fcsv):
                 tra['amount_raw']    = amount_raw
                 tra['exchange']      = exchange
                 tra['amount']        = amount_sskm(amount_eur) 
-            elif bd.end_str['visa'] in date:
+            elif end_str['visa'] in date:
                 if 'tra' in locals():
                     transactions.append(tra)
                 break
@@ -253,7 +251,7 @@ def csv2tras_diba(fcsv):
                 tra['type'], tra['user'] = line[1].split(' ', 1)
                 tra['descr'] = ''
                 tra['amount'] = amount_diba(line[2])
-            elif bd.end_str['diba'] in date:
+            elif end_str['diba'] in date:
                 if 'tra' in locals():
                     transactions.append(tra)
                 break
@@ -264,10 +262,10 @@ def csv2tras_diba(fcsv):
                 if 'tra' in locals():
                     if 'descr' in tra.keys():
                         if descr_line != '':
-                            if bd.mand_diba in descr_line:
-                                tra['mandat'] = descr_line.split(bd.mand_diba, 1)[1].strip()
-                            elif bd.ref_diba in descr_line:
-                                tra['reference'] = descr_line.split(bd.ref_diba, 1)[1].strip()
+                            if mand_diba in descr_line:
+                                tra['mandat'] = descr_line.split(mand_diba, 1)[1].strip()
+                            elif ref_diba in descr_line:
+                                tra['reference'] = descr_line.split(ref_diba, 1)[1].strip()
                             else:
                                 tra['descr'] += '\n' + descr_line
             if isdate_y4(date):
@@ -280,25 +278,25 @@ def csv2tras_diba(fcsv):
 def about():
 
     import tkhyper
-    mytext = 'Documentation at the <a href="https://www2.ipp.mpg.de/~git/pcsv/index.html">Statement Parser</a>'
+    mytext = 'Documentation at the <a href="https://www2.ipp.mpg.de/~git/pbs/index.html">Statement Parser</a>'
     h = tkhyper.HyperlinkMessageBox("Help", mytext, "340x60")
 
 
-class pcsv_gui:
+class pbs_gui:
 
 
     def __init__(self):
 
 
-        pcsvmain = tk.Tk()
-        import pcsv_style
-        pcsvmain.title('Bank-statement parser')
-        pcsvmain.geometry('800x600')
-        pcsvmain.configure(background=pcsv_style.frc)
+        pbsmain = tk.Tk()
+        import pbs_style
+        pbsmain.title('Bank-statement parser')
+        pbsmain.geometry('800x600')
+        pbsmain.configure(background=pbs_style.frc)
 
 # Menubar
 
-        menubar  = tk.Menu(pcsvmain)
+        menubar  = tk.Menu(pbsmain)
         filemenu = tk.Menu(menubar, tearoff=0)
 
         filemenu.add_command(label="Parse statements", command=self.parse)
@@ -312,17 +310,17 @@ class pcsv_gui:
         menubar.add_cascade(label = "File", menu=filemenu)
         menubar.add_cascade(label = "Help", menu=helpmenu)
 
-        menubar.configure(bg=pcsv_style.tbc)
-        pcsvmain.config(menu = menubar)
+        menubar.configure(bg=pbs_style.tbc)
+        pbsmain.config(menu = menubar)
 
-        btframe     = ttk.Frame(pcsvmain)
-        bankframe   = ttk.Frame(pcsvmain)
-        wordframe   = ttk.Frame(pcsvmain)
-        dirframe    = ttk.Frame(pcsvmain)
-        year1frame  = ttk.Frame(pcsvmain)
-        year2frame  = ttk.Frame(pcsvmain)
-        amountframe = ttk.Frame(pcsvmain)
-        outframe    = ttk.Frame(pcsvmain)
+        btframe     = ttk.Frame(pbsmain)
+        bankframe   = ttk.Frame(pbsmain)
+        wordframe   = ttk.Frame(pbsmain)
+        dirframe    = ttk.Frame(pbsmain)
+        year1frame  = ttk.Frame(pbsmain)
+        year2frame  = ttk.Frame(pbsmain)
+        amountframe = ttk.Frame(pbsmain)
+        outframe    = ttk.Frame(pbsmain)
         
         for frame in btframe, bankframe, wordframe, dirframe, year1frame, year2frame, amountframe:
             frame.pack(side=tk.TOP, anchor=tk.W, pady=5)      
@@ -341,7 +339,8 @@ class pcsv_gui:
         bank1 = ttk.Radiobutton(bankframe, text='SSKM', variable=self.bank_wid, value='sskm', command=self.sel)
         bank2 = ttk.Radiobutton(bankframe, text='DiBa', variable=self.bank_wid, value='diba', command=self.sel)
         bank3 = ttk.Radiobutton(bankframe, text='Visa', variable=self.bank_wid, value='visa', command=self.sel)
-        for rb in bank1, bank2, bank3:
+        bank4 = ttk.Radiobutton(bankframe, text='KSKMSE', variable=self.bank_wid, value='ksk', command=self.sel)
+        for rb in bank1, bank2, bank3, bank4:
             rb.pack(side=tk.LEFT)
 
         ttk.Label(wordframe, text='Keyword').pack(side=tk.LEFT)
@@ -358,7 +357,7 @@ class pcsv_gui:
         ttk.Label(year1frame, text='Year start', width=12).pack(side=tk.LEFT)
         self.year_beg = tk.IntVar()
         self.year_beg = tk.Entry(year1frame, width=6)
-        self.year_beg.insert(0, 2016)
+        self.year_beg.insert(0, 2015)
         self.year_beg.pack(side=tk.LEFT)
 
         ttk.Label(year2frame, text='Year end', width=12).pack(side=tk.LEFT)
@@ -384,7 +383,7 @@ class pcsv_gui:
         toolbar = nt2tk(can_time, canframe)
         toolbar.update()
 
-        pcsvmain.mainloop()
+        pbsmain.mainloop()
 
 
     def sel(self):
@@ -428,9 +427,9 @@ class pcsv_gui:
             else:
                 fpdf = fname
             fcsv = os.path.splitext(fpdf)[0] + '.csv'
-            log = pdf2csv(fpdf, fcsv, self.bank)
+            log = pdf2csv.pdf2csv(fpdf, fcsv, self.bank)
             self.txt.insert(tk.INSERT, log)
-            if self.bank == 'sskm':
+            if self.bank in ('sskm', 'ksk'):
                 tras = csv2tras_sskm(fcsv)
             elif self.bank == 'diba':
                 tras = csv2tras_diba(fcsv)
@@ -479,5 +478,5 @@ class pcsv_gui:
             
 if __name__ == '__main__':
 
-    pcsv_gui()
+    pbs_gui()
 
