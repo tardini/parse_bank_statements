@@ -449,7 +449,6 @@ class pbs_gui:
     
         self.txt.delete('1.0', tk.END)
         formatHyperLink(self.txt, info_text)
-#       self.txt.insert(tk.INSERT, info_text)
 
     def save_dir(self):
         try:
@@ -479,7 +478,7 @@ class pbs_gui:
                 fpdf = fname
             fcsv = os.path.splitext(fpdf)[0] + '.csv'
             log = pdf2csv.pdf2csv(fpdf, fcsv, self.bank)
-            self.txt.insert(tk.INSERT, log)
+            self.txt.insert('insert', log)
             if self.bank in ('sskm', 'ksk'):
                 tras = csv2tras_sskm(fcsv)
             elif self.bank == 'diba':
@@ -497,9 +496,9 @@ class pbs_gui:
                                 tot_year += tra['amount']
                                 out_str += '%9.2f\u20ac' %tra['amount']
                             out_str += '\n'
-                            self.txt.insert(tk.INSERT, out_str)
+                            self.txt.insert('insert', out_str)
                             break
-        self.txt.insert(tk.INSERT, '\n%s\nkeyword "%s": %10.4f\u20ac\n\n' %(dir_in, self.word, tot_year))
+        self.txt.insert('insert', '\n%s\nkeyword "%s": %10.4f\u20ac\n\n' %(dir_in, self.word, tot_year))
 
         return tot_year
 
