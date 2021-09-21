@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-import os, sys, re, csv, webbrowser
+import os, sys, re, csv, webbrowser, datetime
 import tkinter as tk
 import tkinter.scrolledtext as st
 from tkinter import ttk
@@ -18,6 +18,7 @@ except:
     from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg as nt2tk
 
 iban_sskm = 'Gläubiger-ID:'
+print(iban_sskm)
 
 mand_diba = 'Mandat:'
 ref_diba  = 'Referenz:'
@@ -196,7 +197,7 @@ def csv2tras_sskm(fcsv):
                     else:
                         continue
                 else:
-                    print('LINE too short', line)
+                    print('%s: LINE too short %s' %(csvfile, line))
                     continue
 
             date       = line[0].strip()
@@ -340,7 +341,7 @@ class pbs_gui:
 
         pbsmain = tk.Tk()
         import pbs_style
-        pbsmain.title('Bank-statement parser')
+        pbsmain.title('Bank-statement-parser')
         pbsmain.geometry('800x600')
         pbsmain.configure(background=pbs_style.frc)
 
@@ -409,10 +410,11 @@ class pbs_gui:
         self.year_beg.insert(0, 2015)
         self.year_beg.pack(side=tk.LEFT)
 
+        now = datetime.datetime.now()
         ttk.Label(year2frame, text='Year end', width=12).pack(side=tk.LEFT)
         self.year_end = tk.IntVar()
         self.year_end = tk.Entry(year2frame, width=6)
-        self.year_end.insert(0, 2020)
+        self.year_end.insert(0, now.year)
         self.year_end.pack(side=tk.LEFT)
 
         ttk.Label(amountframe, text='Total').pack(side=tk.LEFT)
@@ -487,6 +489,13 @@ class pbs_gui:
                 tras = csv2tras_diba(fcsv)
             elif self.bank == 'visa':
                 tras = csv2tras_visa(fcsv)
+            if fcsv == '/home/gio/sskm/gk/2021/Konto_131409-Auszug_2021_002.csv':
+                self.txt.insert('insert', fcsv+'\n') # git
+                for tra in tras:
+                    if tra['date'] == '05.13.2021':
+                        for key, val in tra.items():
+                            print(key, '|', val)
+                        print('')
 
 # Parse transactions of a given statement
             for tra in tras:
