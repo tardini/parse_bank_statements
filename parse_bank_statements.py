@@ -1,12 +1,11 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
 
-import os, sys, re, csv, webbrowser, datetime
+import os, sys, re, csv, webbrowser, datetime, logging
 import tkinter as tk
 import tkinter.scrolledtext as st
 from tkinter import ttk
 from tkinter import filedialog as tkfd
-import pdf2csv
+from . import pdf2csv
 import numpy as np
 import matplotlib.pylab as plt
 from matplotlib.ticker import MaxNLocator
@@ -17,8 +16,17 @@ try:
 except:
     from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg as nt2tk
 
+fmt = logging.Formatter('%(asctime)s | %(name)s | %(levelname)s: %(message)s', '%Y-%m-%d %H:%M:%S')
+hnd = logging.StreamHandler()
+hnd.setFormatter(fmt)
+hnd.setLevel(level=logging.INFO)
+logger = logging.getLogger('parse-bank-statements')
+logger.addHandler(hnd)
+logger.setLevel(logging.INFO)
+logger.propagate = False
+
 iban_sskm = 'Gläubiger-ID:'
-print(iban_sskm)
+logger.debug(iban_sskm)
 
 mand_diba = 'Mandat:'
 ref_diba  = 'Referenz:'
@@ -160,7 +168,7 @@ def amount_sskm(str_in):
     try:
         money = float(str_in[:-1])
     except:
-        print('Error converting %s to float' %str_in)
+        logger.exception('Error converting %s to float' %str_in)
         money = None
     if str_in[-1] == '-':
         money = -money
@@ -177,7 +185,7 @@ def amount_diba(str_in):
     try:
         money = float(str_in)
     except:
-        print('Error converting %s to float' %str_in)
+        logger.exception('Error converting %s to float' %str_in)
         money = None
     return money
 
@@ -197,7 +205,7 @@ def csv2tras_sskm(fcsv):
                     else:
                         continue
                 else:
-                    print('%s: LINE too short %s' %(csvfile, line))
+                    logger.warning('%s: LINE too short %s' %(csvfile, line))
                     continue
 
             date       = line[0].strip()
@@ -340,7 +348,7 @@ class pbs_gui:
 
 
         pbsmain = tk.Tk()
-        import pbs_style
+        from . import pbs_style
         pbsmain.title('Bank-statement-parser')
         pbsmain.geometry('800x600')
         pbsmain.configure(background=pbs_style.frc)
@@ -443,7 +451,7 @@ class pbs_gui:
         self.bank = self.bank_wid.get().strip()
         self.dir_wid.delete(0, tk.END)
         try:
-            from bank_path import dir_bank
+            from .bank_path import dir_bank
             self.dir_wid.insert(0, dir_bank[self.bank])
         except:
             self.dir_wid.insert(0, os.getenv('HOME'))
@@ -455,7 +463,7 @@ class pbs_gui:
 
     def save_dir(self):
         try:
-            from bank_path import dir_bank
+            from .bank_path import dir_bank
         except:
             dir_bank = {}
         new_dir = self.dir_wid.get().strip()
@@ -494,8 +502,8 @@ class pbs_gui:
                 for tra in tras:
                     if tra['date'] == '05.13.2021':
                         for key, val in tra.items():
-                            print(key, '|', val)
-                        print('')
+                            logger.info(key, '|', val)
+                        logger.info('')
 
 # Parse transactions of a given statement
             for tra in tras:
@@ -540,4 +548,3 @@ class pbs_gui:
 if __name__ == '__main__':
 
     pbs_gui()
-
