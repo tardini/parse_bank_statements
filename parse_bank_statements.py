@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: UTF-8 -*-
 
 import os, sys, re, csv, webbrowser, datetime, logging
 import tkinter as tk
@@ -16,17 +17,15 @@ try:
 except:
     from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg as nt2tk
 
-fmt = logging.Formatter('%(asctime)s | %(name)s | %(levelname)s: %(message)s', '%Y-%m-%d %H:%M:%S')
+fmt = logging.Formatter('%(name)s | %(levelname)s: %(message)s', '%H:%M:%S')
 hnd = logging.StreamHandler()
 hnd.setFormatter(fmt)
-hnd.setLevel(level=logging.INFO)
-logger = logging.getLogger('parse-bank-statements')
+logger = logging.getLogger('PBS')
 logger.addHandler(hnd)
-logger.setLevel(logging.INFO)
-logger.propagate = False
+logger.setLevel(logging.DEBUG)
+#logger.setLevel(logging.INFO)
 
 iban_sskm = 'Gläubiger-ID:'
-logger.debug(iban_sskm)
 
 mand_diba = 'Mandat:'
 ref_diba  = 'Referenz:'
@@ -168,7 +167,7 @@ def amount_sskm(str_in):
     try:
         money = float(str_in[:-1])
     except:
-        logger.exception('Error converting %s to float' %str_in)
+        logger.error('Error converting %s to float', str_in)
         money = None
     if str_in[-1] == '-':
         money = -money
@@ -185,7 +184,7 @@ def amount_diba(str_in):
     try:
         money = float(str_in)
     except:
-        logger.exception('Error converting %s to float' %str_in)
+        logger.error('Error converting %s to float' %str_in)
         money = None
     return money
 
@@ -196,6 +195,7 @@ def csv2tras_sskm(fcsv):
     transactions = []
     with open(fcsv, newline='') as csvfile:
         csvreader = csv.reader(csvfile, quotechar='"')
+        logger.debug(fcsv)
         for line in csvreader:
             if len(line) < 5:
                 if len(line) == 4:
@@ -205,9 +205,10 @@ def csv2tras_sskm(fcsv):
                     else:
                         continue
                 else:
-                    logger.warning('%s: LINE too short %s' %(csvfile, line))
+                    logger.error('%s: LINE too short %s' %(csvfile, line))
                     continue
-
+            if fcsv == '/home/gio/sskm/gk/2021/Konto_131409-Auszug_2021_011.csv':
+            	logger.debug(line)
             date       = line[0].strip()
             date_val   = line[1].strip()
             descr_line = line[2].strip()
@@ -241,6 +242,64 @@ def csv2tras_sskm(fcsv):
                         pass
                 tra['date'] = date
                 tra['date_currency'] = date_val
+                tra['descr'] = descr_line
+                minus = amount_sskm(amount_in)
+                if minus is not None:
+                    tra['amount'] = minus
+                else:
+                    tra['amount'] = amount_sskm(amount_out)
+            elif end_str['sskm'] in date:
+                if 'tra' in locals():
+                    transactions.append(tra)
+                break
+                
+    return transactions
+
+
+def csv2tras_sskm2(fcsv):
+
+    transactions = []
+    with open(fcsv, newline='') as csvfile:
+        csvreader = csv.reader(csvfile, quotechar='"')
+        logger.debug(fcsv)
+        for line in csvreader:
+#            if fcsv == '/home/gio/sskm/gk/2021/Konto_131409-Auszug_2021_011.csv':
+#                logger.debug('LINE %s', line)
+            n_cols = len(line)
+            while n_cols < 4:
+                line.append('')
+                n_cols = len(line)
+            date       = line[0].strip()
+            descr_line = line[1].strip()
+            amount_out = line[2].strip()
+            amount_in  = line[3].strip()
+            if date == '':
+                if 'tra' in locals():
+                    if 'descr' in tra.keys():
+                        if descr_line != '':
+                            tra['descr'] += '\n' + descr_line
+            elif isdate_y4(date): # new transaction
+                if 'tra' in locals():
+                    if iban_sskm in tra['descr']:
+                        descr, tra['iban'] = tra['descr'].split(iban_sskm, 1)
+                        tra['iban'] = tra['iban'].strip()
+                        tra['descr'] = descr.strip()
+                    else:
+                        tra['iban'] = None
+                    descr = tra['descr'] # parse a bit more
+                    if descr.count('\n') > 1:
+                        tra['type'], tra['user'], tra['descr'] = descr.split('\n', 2)
+                    elif descr.count('\n') > 0:
+                        tra['type'], tra['descr'] = descr.split('\n', 1)
+                    tra['descr'] = tra['descr'].strip()
+                    transactions.append(tra)
+                tra = {}
+                if not isdate_y4(date):
+                    try:
+                        date = date.split()[1]
+                    except:
+                        pass
+                tra['date'] = date
                 tra['descr'] = descr_line
                 minus = amount_sskm(amount_in)
                 if minus is not None:
@@ -403,7 +462,7 @@ class pbs_gui:
 
         ttk.Label(wordframe, text='Keyword').pack(side=tk.LEFT)
         self.word_wid = tk.Entry(wordframe, width=40)
-        self.word_wid.insert(0, 'plasma')
+        self.word_wid.insert(0, 'banovo')
         self.word_wid.pack(side=tk.LEFT)
 
         ttk.Label(dirframe, text='Start dir', width=12).pack(side=tk.LEFT)
@@ -479,10 +538,20 @@ class pbs_gui:
 
         tot_year = 0
         out_str = ''
+        logger.debug(dir_in)
+        year = int(os.path.basename(dir_in))
+        if self.bank == 'sskm' and year > 2021:
+            self.bank = 'sskm2'
+
         for f_name in sorted(os.listdir(dir_in)):
             fname = '%s/%s' %(dir_in, f_name)
-            ext = os.path.splitext(fname)[1]
-            
+            pre, ext = os.path.splitext(fname)
+            if (self.bank == 'sskm') and year == 2021:
+                month = pre.split('_')[-1]
+                if month in ('011', '012'):
+                    self.bank = 'sskm2'
+                    logger.debug('MONTH %s', month)
+
             if ext.lower() != '.pdf':
                 continue
             else:
@@ -493,17 +562,13 @@ class pbs_gui:
                 self.txt.insert('insert', log)
             if self.bank in ('sskm', 'ksk'):
                 tras = csv2tras_sskm(fcsv)
+            elif self.bank == 'sskm2':
+                tras = csv2tras_sskm2(fcsv)
             elif self.bank == 'diba':
                 tras = csv2tras_diba(fcsv)
             elif self.bank == 'visa':
                 tras = csv2tras_visa(fcsv)
-            if fcsv == '/home/gio/sskm/gk/2021/Konto_131409-Auszug_2021_002.csv':
-                self.txt.insert('insert', fcsv+'\n') # git
-                for tra in tras:
-                    if tra['date'] == '05.13.2021':
-                        for key, val in tra.items():
-                            logger.info(key, '|', val)
-                        logger.info('')
+            self.txt.insert('insert', fcsv+'\n') # git
 
 # Parse transactions of a given statement
             for tra in tras:
@@ -548,3 +613,4 @@ class pbs_gui:
 if __name__ == '__main__':
 
     pbs_gui()
+

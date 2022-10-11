@@ -5,8 +5,8 @@
 """
 
 __author__  = 'Giovanni Tardini'
-__version__ = '0.0.1'
-__date__    = '14.10.2021'
+__version__ = '0.1.2'
+__date__    = '11.10.2022'
 
 import logging
 
