@@ -1,0 +1,11 @@
+module purge
+module load anaconda/3/2021.05
+
+rm -r dist
+rm -r src/parse_bank_statements.egg-info
+
+python -m build
+python -m twine upload --repository pypi dist/*
+
+pip uninstall parse_bank_statements
+pip install parse_bank_statements

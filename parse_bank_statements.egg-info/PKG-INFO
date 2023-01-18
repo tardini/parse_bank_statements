@@ -1,3 +1,17 @@
+Metadata-Version: 2.1
+Name: parse-bank-statements
+Version: 0.1.3
+Summary: Package to parse bank statements
+Home-page: https://github.com/tardini/parse_bank_statements.git
+Author: Giovanni Tardini
+Author-email: giovannitardini@yahoo.de
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=2.6
+Description-Content-Type: text/markdown
+License-File: LICENSE
+
 This python GUI-based tool allows to browse bank statements, or any column-structured PDF files, if the format is rigid.
 
 The app expects a directory structure of the type:
