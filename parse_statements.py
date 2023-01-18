@@ -10,10 +10,7 @@ import matplotlib.pylab as plt
 from matplotlib.ticker import MaxNLocator
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
-try:
-    from . import pdf2csv, dates, bank_path
-except:
-    import pdf2csv, dates, bank_path
+from parse_bank_statements import pdf2csv, dates, bank_path
 
 try:
     from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk as nt2tk
@@ -270,10 +267,7 @@ class pbs_gui:
 
 
         pbsmain = tk.Tk()
-        try:
-            from . import pbs_style
-        except:
-            import pbs_style
+        from parse_bank_statements import pbs_style
         pbsmain.title('Bank-statement-parser')
         pbsmain.geometry('800x600')
         pbsmain.configure(background=pbs_style.frc)

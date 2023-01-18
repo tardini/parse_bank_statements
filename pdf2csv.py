@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import os, sys, csv # project tabula-py, requiring Java
-import dates
+from parse_bank_statements import dates
 
 help = """
 AREA boundaries: (top-y, left-x, bottom-y, right-x).
