@@ -11,9 +11,9 @@ from matplotlib.ticker import MaxNLocator
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 try:
-    from . import pdf2csv, dates
+    from . import pdf2csv, dates, bank_path
 except:
-    import pdf2csv, dates
+    import pdf2csv, dates, bank_path
 
 try:
     from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk as nt2tk
@@ -328,7 +328,7 @@ class pbs_gui:
 
         ttk.Label(wordframe, text='Keyword').pack(side=tk.LEFT)
         self.word_wid = tk.Entry(wordframe, width=40)
-        self.word_wid.insert(0, 'amazon')
+        self.word_wid.insert(0, 'plasma')
         self.word_wid.pack(side=tk.LEFT)
 
         ttk.Label(dirframe, text='Start dir', width=12).pack(side=tk.LEFT)
@@ -340,7 +340,7 @@ class pbs_gui:
         ttk.Label(year1frame, text='Year start', width=12).pack(side=tk.LEFT)
         self.year_beg = tk.IntVar()
         self.year_beg = tk.Entry(year1frame, width=6)
-        self.year_beg.insert(0, 2020)
+        self.year_beg.insert(0, 2015)
         self.year_beg.pack(side=tk.LEFT)
 
         now = datetime.datetime.now()
@@ -373,24 +373,21 @@ class pbs_gui:
 
 
     def sel(self):
+
         self.bank = self.bank_wid.get().strip()
         self.dir_wid.delete(0, tk.END)
-        try:
-            from bank_path import dir_bank
-            self.dir_wid.insert(0, dir_bank[self.bank])
-        except:
-            self.dir_wid.insert(0, os.getenv('HOME'))
+        self.dir_wid.insert(0, bank_path.dir_bank[self.bank])
+
 
     def info(self):
     
         self.txt.delete('1.0', tk.END)
         formatHyperLink(self.txt, info_text)
 
+
     def save_dir(self):
-        try:
-            from bank_path import dir_bank
-        except:
-            dir_bank = {}
+
+        dir_bank = bank_path.dir_bank
         new_dir = self.dir_wid.get().strip()
         dir_bank[self.bank] = new_dir
         with open('bank_path.py', 'w') as f:
@@ -398,6 +395,7 @@ class pbs_gui:
             for key, val in dir_bank.items():
                 f.write("'%s': '%s', \\\n" %(key, val))
             f.write('}\n')
+
         
     def parse_year(self, dir_in):
         '''Check for given words in statements, case insensitive'''
