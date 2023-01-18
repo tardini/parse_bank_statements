@@ -1,17 +1,20 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
 
 import os, sys, re, csv, webbrowser, datetime, logging
 import tkinter as tk
 import tkinter.scrolledtext as st
 from tkinter import ttk
 from tkinter import filedialog as tkfd
-from . import pdf2csv
 import numpy as np
 import matplotlib.pylab as plt
 from matplotlib.ticker import MaxNLocator
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
+try:
+    from . import pdf2csv, dates
+except:
+    import pdf2csv, dates
+
 try:
     from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk as nt2tk
 except:
@@ -25,8 +28,8 @@ logger.addHandler(hnd)
 logger.setLevel(logging.DEBUG)
 #logger.setLevel(logging.INFO)
 
-iban_sskm = 'Gläubiger-ID:'
 
+iban_sskm = 'ubiger-ID:'
 mand_diba = 'Mandat:'
 ref_diba  = 'Referenz:'
 
@@ -102,6 +105,7 @@ def _openbrowser(url):
 
     return lambda *args, **kwargs: webbrowser.open(url)
 
+
 def plot_time(year_beg, year_end, amount, fig_time):
 
 
@@ -122,40 +126,6 @@ def plot_time(year_beg, year_end, amount, fig_time):
     ax.ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
     ax.yaxis.major.formatter._useMathText = True
     fig_time.canvas.draw()
-
-
-def isdate_y4(str_in):
-    '''Check whether an input string has a date format'''
-
-    str_in = str_in.strip()
-    is_date = False
-    if len(str_in) == 10:
-        if str_in[2] == '.' and str_in[5] == '.':
-            try:
-                day   = int(str_in[0:2])
-                month = int(str_in[3:5])
-                year  = int(str_in[6:10])
-                is_date = True
-            except:
-                is_date = False
-    return is_date
-
-
-def isdate_y2(str_in):
-    '''Check whether an input string has a date format'''
-
-    str_in = str_in.strip()
-    is_date = False
-    if len(str_in) == 8:
-        if str_in[2] == '.' and str_in[5] == '.':
-            try:
-                day   = int(str_in[0:2])
-                month = int(str_in[3:5])
-                year  = int(str_in[6:8])
-                is_date = True
-            except:
-                is_date = False
-    return is_date
 
 
 def amount_sskm(str_in):
@@ -192,210 +162,103 @@ def amount_diba(str_in):
 def csv2tras_sskm(fcsv):
     '''Split a statement into a list of transaction dictionaries (bank SSKM)'''
 
+    logger.debug(fcsv)
+    tra_list = pdf2csv.csv2transactions(fcsv)
     transactions = []
-    with open(fcsv, newline='') as csvfile:
-        csvreader = csv.reader(csvfile, quotechar='"')
-        logger.debug(fcsv)
-        for line in csvreader:
-            if len(line) < 5:
-                if len(line) == 4:
-                    a = amount_sskm(line[3])
-                    if a is not None:
-                        line.append('')
-                    else:
-                        continue
-                else:
-                    logger.error('%s: LINE too short %s' %(csvfile, line))
-                    continue
-            if fcsv == '/home/gio/sskm/gk/2021/Konto_131409-Auszug_2021_011.csv':
-            	logger.debug(line)
-            date       = line[0].strip()
-            date_val   = line[1].strip()
-            descr_line = line[2].strip()
-            amount_out = line[3].strip()
-            amount_in  = line[4].strip()
-            if date == '':
-                if 'tra' in locals():
-                    if 'descr' in tra.keys():
-                        if descr_line != '':
-                            tra['descr'] += '\n' + descr_line
-            elif isdate_y4(date_val): # new transaction
-                if 'tra' in locals():
-                    if iban_sskm in tra['descr']:
-                        descr, tra['iban'] = tra['descr'].split(iban_sskm, 1)
-                        tra['iban'] = tra['iban'].strip()
-                        tra['descr'] = descr.strip()
-                    else:
-                        tra['iban'] = None
-                    descr = tra['descr'] # parse a bit more
-                    if descr.count('\n') > 1:
-                        tra['type'], tra['user'], tra['descr'] = descr.split('\n', 2)
-                    elif descr.count('\n') > 0:
-                        tra['type'], tra['descr'] = descr.split('\n', 1)
-                    tra['descr'] = tra['descr'].strip()
-                    transactions.append(tra)
-                tra = {}
-                if not isdate_y4(date):
-                    try:
-                        date = date.split()[1]
-                    except:
-                        pass
-                tra['date'] = date
-                tra['date_currency'] = date_val
-                tra['descr'] = descr_line
-                minus = amount_sskm(amount_in)
-                if minus is not None:
-                    tra['amount'] = minus
-                else:
-                    tra['amount'] = amount_sskm(amount_out)
-            elif end_str['sskm'] in date:
-                if 'tra' in locals():
-                    transactions.append(tra)
-                break
+    for transa in tra_list:
+        tra = {}
+        tra['date'], tra['date_currency'], tra['descr'], amount_out, amount_in = transa
+        if iban_sskm in tra['descr']:
+            descr, tra['iban'] = tra['descr'].split(iban_sskm, 1)
+            tra['iban'] = tra['iban'].strip()
+            tra['descr'] = descr.strip()
+        else:
+            tra['iban'] = None
+        descr = tra['descr'] # parse a bit more
+        if descr.count('\n') > 1:
+            tra['type'], tra['user'], tra['descr'] = descr.split('\n', 2)
+        elif descr.count('\n') > 0:
+            tra['type'], tra['descr'] = descr.split('\n', 1)
+        tra['descr'] = tra['descr'].strip()
+        minus = amount_sskm(amount_in)
+        if minus is not None:
+            tra['amount'] = minus
+        else:
+            tra['amount'] = amount_sskm(amount_out)
+
+        transactions.append(tra)
                 
     return transactions
 
 
 def csv2tras_sskm2(fcsv):
 
+    '''Split a statement into a list of transaction dictionaries (bank SSKM)'''
+
+    logger.debug(fcsv)
+    tra_list = pdf2csv.csv2transactions(fcsv, saldo_pos=1)
     transactions = []
-    with open(fcsv, newline='') as csvfile:
-        csvreader = csv.reader(csvfile, quotechar='"')
-        logger.debug(fcsv)
-        for line in csvreader:
-#            if fcsv == '/home/gio/sskm/gk/2021/Konto_131409-Auszug_2021_011.csv':
-#                logger.debug('LINE %s', line)
-            n_cols = len(line)
-            while n_cols < 4:
-                line.append('')
-                n_cols = len(line)
-            date       = line[0].strip()
-            descr_line = line[1].strip()
-            amount_out = line[2].strip()
-            amount_in  = line[3].strip()
-            if date == '':
-                if 'tra' in locals():
-                    if 'descr' in tra.keys():
-                        if descr_line != '':
-                            tra['descr'] += '\n' + descr_line
-            elif isdate_y4(date): # new transaction
-                if 'tra' in locals():
-                    if iban_sskm in tra['descr']:
-                        descr, tra['iban'] = tra['descr'].split(iban_sskm, 1)
-                        tra['iban'] = tra['iban'].strip()
-                        tra['descr'] = descr.strip()
-                    else:
-                        tra['iban'] = None
-                    descr = tra['descr'] # parse a bit more
-                    if descr.count('\n') > 1:
-                        tra['type'], tra['user'], tra['descr'] = descr.split('\n', 2)
-                    elif descr.count('\n') > 0:
-                        tra['type'], tra['descr'] = descr.split('\n', 1)
-                    tra['descr'] = tra['descr'].strip()
-                    transactions.append(tra)
-                tra = {}
-                if not isdate_y4(date):
-                    try:
-                        date = date.split()[1]
-                    except:
-                        pass
-                tra['date'] = date
-                tra['descr'] = descr_line
-                minus = amount_sskm(amount_in)
-                if minus is not None:
-                    tra['amount'] = minus
-                else:
-                    tra['amount'] = amount_sskm(amount_out)
-            elif end_str['sskm'] in date:
-                if 'tra' in locals():
-                    transactions.append(tra)
-                break
+    for transa in tra_list:
+        tra = {}
+        tra['date'], tra['descr'], amount_out, amount_in = transa
+        if iban_sskm in tra['descr']:
+            descr, tra['iban'] = tra['descr'].split(iban_sskm, 1)
+            tra['iban'] = tra['iban'].strip()
+            tra['descr'] = descr.strip()
+        else:
+            tra['iban'] = None
+        descr = tra['descr'] # parse a bit more
+        if descr.count('\n') > 1:
+            tra['type'], tra['user'], tra['descr'] = descr.split('\n', 2)
+        elif descr.count('\n') > 0:
+            tra['type'], tra['descr'] = descr.split('\n', 1)
+        tra['descr'] = tra['descr'].strip()
+        minus = amount_sskm(amount_in)
+        if minus is not None:
+            tra['amount'] = minus
+        else:
+            tra['amount'] = amount_sskm(amount_out)
+        transactions.append(tra)
                 
     return transactions
 
 
 def csv2tras_visa(fcsv):
-    '''Split a statement into a list of transaction dictionaries (bank SSKM)'''
+    '''Split a statement into a list of transaction dictionaries (credit-card SSKM)'''
 
+    logger.debug(fcsv)
+    tra_list = pdf2csv.csv2transactions(fcsv, saldo_str='Saldo', saldo_pos=2)
     transactions = []
-    with open(fcsv, newline='') as csvfile:
-        csvreader = csv.reader(csvfile, quotechar='"')
-        for line in csvreader:
-            date       = line[0].strip()
-            date_val   = line[1].strip()
-            descr_line = line[2].strip()
-            currency   = line[3].strip()
-            amount_raw = line[4].strip()
-            exchange   = line[5].strip()
-            amount_eur = line[6].strip()
-            if date == '':
-                if 'tra' in locals():
-                    if 'descr' in tra.keys():
-                        if descr_line != '':
-                            tra['descr'] += '\n' + descr_line
-            elif isdate_y2(date_val): # new transaction
+    for transa in tra_list:
+        tra = {}
+        tra['date'], tra['date_currency'], tra['descr'], tra['currency'], tra['amount_raw'], \
+            tra['exchange'], amount_eur = transa
+        tra['amount'] = amount_sskm(amount_eur)
+        transactions.append(tra)
 
-                tra = {}
-                if not isdate_y2(date):
-                    try:
-                        date = date.split()[1]
-                    except:
-                        pass
-                tra['date'] = date
-                tra['date_currency'] = date_val
-                tra['descr']         = descr_line
-                tra['currency']      = currency
-                tra['amount_raw']    = amount_raw
-                tra['exchange']      = exchange
-                tra['amount']        = amount_sskm(amount_eur) 
-            elif end_str['visa'] in date:
-                if 'tra' in locals():
-                    transactions.append(tra)
-                break
-                
     return transactions
 
 
 def csv2tras_diba(fcsv):
-    '''Split a statement into a list of transaction dictionaries (bank Ing.DIBA)'''
+    '''Split a statement into a list of transaction dictionaries (bank Ing. DIBA)'''
 
+    logger.debug(fcsv)
+    tra_list = pdf2csv.csv2transactions(fcsv, saldo_str='Saldo', saldo_pos=1)
     transactions = []
-    line_old = ''
-    new_trans = 1
-    with open(fcsv, newline='') as csvfile:
-        csvreader = csv.reader(csvfile, quotechar='"')
-        for line in csvreader:
-
-            date = line[0].strip()
-
-            if isdate_y4(date) and new_trans: # new transaction
-                if 'tra' in locals():
-                    transactions.append(tra)
-                tra = {}
-                tra['date'] = date
-                tra['type'], tra['user'] = line[1].split(' ', 1)
-                tra['descr'] = ''
-                tra['amount'] = amount_diba(line[2])
-            elif end_str['diba'] in date:
-                if 'tra' in locals():
-                    transactions.append(tra)
-                break
-            else:
-                if isdate_y4(date): # second line
-                    tra['date_currency'] = date
-                descr_line = line[1].strip()
-                if 'tra' in locals():
-                    if 'descr' in tra.keys():
-                        if descr_line != '':
-                            if mand_diba in descr_line:
-                                tra['mandat'] = descr_line.split(mand_diba, 1)[1].strip()
-                            elif ref_diba in descr_line:
-                                tra['reference'] = descr_line.split(ref_diba, 1)[1].strip()
-                            else:
-                                tra['descr'] += '\n' + descr_line
-            if isdate_y4(date):
-                new_trans = isdate_y4(date) - new_trans 
-            line_old = line
+    for jtra, transa in enumerate(tra_list):
+        if jtra%2 == 0:
+            tra = {}
+            tra['date'], type_user, amount_eur = transa
+            tra['type'], tra['user'] = type_user.split(' ', 1)
+            tra['amount'] = amount_diba(amount_eur)
+        else:
+            tra['date_currency'], descr, _ = transa
+            if descr:
+                if mand_diba in descr:
+                    tra['mandat'] = descr.split(mand_diba, 1)[1].strip()
+                elif ref_diba in descr:
+                    tra['reference'] = descr.split(ref_diba, 1)[1].strip()
+            transactions.append(tra)
 
     return transactions
 
@@ -407,7 +270,10 @@ class pbs_gui:
 
 
         pbsmain = tk.Tk()
-        from . import pbs_style
+        try:
+            from . import pbs_style
+        except:
+            import pbs_style
         pbsmain.title('Bank-statement-parser')
         pbsmain.geometry('800x600')
         pbsmain.configure(background=pbs_style.frc)
@@ -462,7 +328,7 @@ class pbs_gui:
 
         ttk.Label(wordframe, text='Keyword').pack(side=tk.LEFT)
         self.word_wid = tk.Entry(wordframe, width=40)
-        self.word_wid.insert(0, 'banovo')
+        self.word_wid.insert(0, 'amazon')
         self.word_wid.pack(side=tk.LEFT)
 
         ttk.Label(dirframe, text='Start dir', width=12).pack(side=tk.LEFT)
@@ -474,7 +340,7 @@ class pbs_gui:
         ttk.Label(year1frame, text='Year start', width=12).pack(side=tk.LEFT)
         self.year_beg = tk.IntVar()
         self.year_beg = tk.Entry(year1frame, width=6)
-        self.year_beg.insert(0, 2015)
+        self.year_beg.insert(0, 2020)
         self.year_beg.pack(side=tk.LEFT)
 
         now = datetime.datetime.now()
@@ -510,7 +376,7 @@ class pbs_gui:
         self.bank = self.bank_wid.get().strip()
         self.dir_wid.delete(0, tk.END)
         try:
-            from .bank_path import dir_bank
+            from bank_path import dir_bank
             self.dir_wid.insert(0, dir_bank[self.bank])
         except:
             self.dir_wid.insert(0, os.getenv('HOME'))
@@ -522,7 +388,7 @@ class pbs_gui:
 
     def save_dir(self):
         try:
-            from .bank_path import dir_bank
+            from bank_path import dir_bank
         except:
             dir_bank = {}
         new_dir = self.dir_wid.get().strip()
@@ -550,7 +416,7 @@ class pbs_gui:
                 month = pre.split('_')[-1]
                 if month in ('011', '012'):
                     self.bank = 'sskm2'
-                    logger.debug('MONTH %s', month)
+                    logger.debug('MONTH %s %s', month, self.bank)
 
             if ext.lower() != '.pdf':
                 continue
