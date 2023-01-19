@@ -222,14 +222,7 @@ class pbs_gui:
     def sel(self):
 
         bank_label = self.bank_wid.get().strip()
-        if bank_label == 'sskm':
-            self.bank = banks.sskm()
-        elif bank_label == 'visa':
-            self.bank = banks.visa()
-        elif bank_label == 'diba':
-            self.bank = banks.diba()
-        elif bank_label == 'kskmse':
-            self.bank = banks.kskmse()
+        self.bank = getattr(banks, bank_label)
 
         self.dir_wid.delete(0, tk.END)
         self.dir_wid.insert(0, self.bank.rootDir)
@@ -249,7 +242,7 @@ class pbs_gui:
         logger.debug(dir_in)
         year = int(os.path.basename(dir_in))
         if self.bank.label == 'sskm' and year > 2021:
-            self.bank = banks.sskm2()
+            self.bank = banks.sskm2
 
         for f_name in sorted(os.listdir(dir_in)):
             fname = '%s/%s' %(dir_in, f_name)
@@ -257,7 +250,7 @@ class pbs_gui:
             if (self.bank.label == 'sskm') and year == 2021:
                 month = pre.split('_')[-1]
                 if month in ('011', '012'):
-                    self.bank = banks.sskm2()
+                    self.bank = banks.sskm2
                     logger.debug('MONTH %s %s', month, self.bank.label)
 
             if ext.lower() != '.pdf':
@@ -269,7 +262,7 @@ class pbs_gui:
             if log is not None:
                 self.txt.insert('insert', log)
 
-            tras = self.bank.csv2tras(fcsv)
+            tras = self.bank().csv2tras(fcsv)
 
             self.txt.insert('insert', fcsv+'\n') # git
 

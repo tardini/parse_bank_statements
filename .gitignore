@@ -1,5 +1,6 @@
 memo
 dist
+parse_bank_statements.egg-info
 *~
 __pycache__
 *.pyc
