@@ -6,7 +6,7 @@ setup.cfg
 ./parse_bank_statements/__init__.py
 ./parse_bank_statements/bank_path.py
 ./parse_bank_statements/dates.py
-./parse_bank_statements/parse_bank_statements.py
+./parse_bank_statements/parse_statements.py
 ./parse_bank_statements/pbs_style.py
 ./parse_bank_statements/pdf2csv.py
 parse_bank_statements.egg-info/PKG-INFO

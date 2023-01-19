@@ -4,19 +4,27 @@
 """Parse bank statements
 """
 
-__author__  = 'Giovanni Tardini'
-__version__ = '0.1.4'
-__date__    = '18.01.2023'
+import os, logging
 
-import logging
+__author__  = 'Giovanni Tardini'
+__version__ = '0.1.5'
+__date__    = '19.01.2023'
+
 
 fmt = logging.Formatter('%(asctime)s | %(name)s | %(levelname)s: %(message)s', '%Y-%m-%d %H:%M:%S')
 hnd = logging.StreamHandler()
 hnd.setFormatter(fmt)
 hnd.setLevel(level=logging.INFO)
-logger = logging.getLogger('parse-bank-init')
+logger = logging.getLogger('PBS')
 logger.addHandler(hnd)
 logger.setLevel(logging.INFO)
 logger.propagate = False
+
+pbs_home = os.path.dirname(os.path.realpath(__file__))
+
+logger.info('Using version %s', __version__)
+logger.info('PBS home %s', pbs_home)
+
+from .pbs_gui import *
 
 import encodings.utf_8

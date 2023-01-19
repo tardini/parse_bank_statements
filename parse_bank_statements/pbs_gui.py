@@ -10,27 +10,16 @@ import matplotlib.pylab as plt
 from matplotlib.ticker import MaxNLocator
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
-from parse_bank_statements import pdf2csv, dates, bank_path
+from parse_bank_statements import pdf2csv, dates, banks
 
 try:
     from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk as nt2tk
 except:
     from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg as nt2tk
 
-fmt = logging.Formatter('%(name)s | %(levelname)s: %(message)s', '%H:%M:%S')
-hnd = logging.StreamHandler()
-hnd.setFormatter(fmt)
-logger = logging.getLogger('PBS')
-logger.addHandler(hnd)
+logger = logging.getLogger('PBS.parser')
 logger.setLevel(logging.DEBUG)
 #logger.setLevel(logging.INFO)
-
-
-iban_sskm = 'ubiger-ID:'
-mand_diba = 'Mandat:'
-ref_diba  = 'Referenz:'
-
-end_str = {'sskm': 'Der Kon', 'ksk': 'Der Kon', 'diba': 'Kunden-In', 'visa': 'Sehr'}
 
 info_text = \
 '''PARSE BANK STATEMENTS
@@ -125,141 +114,6 @@ def plot_time(year_beg, year_end, amount, fig_time):
     fig_time.canvas.draw()
 
 
-def amount_sskm(str_in):
-    '''Convert string to float (money amount) for bank SSKM'''
-
-    str_in = str_in.strip().replace('.', '').replace(',', '.')
-    if str_in == '':
-        return None
-    try:
-        money = float(str_in[:-1])
-    except:
-        logger.error('Error converting %s to float', str_in)
-        money = None
-    if str_in[-1] == '-':
-        money = -money
-
-    return money
-
-
-def amount_diba(str_in):
-    '''Convert string to float (money amount) for bank Ing.DIBA'''
-
-    str_in = str_in.strip().replace('.', '').replace(',', '.')
-    if str_in == '':
-        return None
-    try:
-        money = float(str_in)
-    except:
-        logger.error('Error converting %s to float' %str_in)
-        money = None
-    return money
-
-
-def csv2tras_sskm(fcsv):
-    '''Split a statement into a list of transaction dictionaries (bank SSKM)'''
-
-    logger.debug(fcsv)
-    tra_list = pdf2csv.csv2transactions(fcsv)
-    transactions = []
-    for transa in tra_list:
-        tra = {}
-        tra['date'], tra['date_currency'], tra['descr'], amount_out, amount_in = transa
-        if iban_sskm in tra['descr']:
-            descr, tra['iban'] = tra['descr'].split(iban_sskm, 1)
-            tra['iban'] = tra['iban'].strip()
-            tra['descr'] = descr.strip()
-        else:
-            tra['iban'] = None
-        descr = tra['descr'] # parse a bit more
-        if descr.count('\n') > 1:
-            tra['type'], tra['user'], tra['descr'] = descr.split('\n', 2)
-        elif descr.count('\n') > 0:
-            tra['type'], tra['descr'] = descr.split('\n', 1)
-        tra['descr'] = tra['descr'].strip()
-        minus = amount_sskm(amount_in)
-        if minus is not None:
-            tra['amount'] = minus
-        else:
-            tra['amount'] = amount_sskm(amount_out)
-
-        transactions.append(tra)
-                
-    return transactions
-
-
-def csv2tras_sskm2(fcsv):
-
-    '''Split a statement into a list of transaction dictionaries (bank SSKM)'''
-
-    logger.debug(fcsv)
-    tra_list = pdf2csv.csv2transactions(fcsv, saldo_pos=1)
-    transactions = []
-    for transa in tra_list:
-        tra = {}
-        tra['date'], tra['descr'], amount_out, amount_in = transa
-        if iban_sskm in tra['descr']:
-            descr, tra['iban'] = tra['descr'].split(iban_sskm, 1)
-            tra['iban'] = tra['iban'].strip()
-            tra['descr'] = descr.strip()
-        else:
-            tra['iban'] = None
-        descr = tra['descr'] # parse a bit more
-        if descr.count('\n') > 1:
-            tra['type'], tra['user'], tra['descr'] = descr.split('\n', 2)
-        elif descr.count('\n') > 0:
-            tra['type'], tra['descr'] = descr.split('\n', 1)
-        tra['descr'] = tra['descr'].strip()
-        minus = amount_sskm(amount_in)
-        if minus is not None:
-            tra['amount'] = minus
-        else:
-            tra['amount'] = amount_sskm(amount_out)
-        transactions.append(tra)
-                
-    return transactions
-
-
-def csv2tras_visa(fcsv):
-    '''Split a statement into a list of transaction dictionaries (credit-card SSKM)'''
-
-    logger.debug(fcsv)
-    tra_list = pdf2csv.csv2transactions(fcsv, saldo_str='Saldo', saldo_pos=2)
-    transactions = []
-    for transa in tra_list:
-        tra = {}
-        tra['date'], tra['date_currency'], tra['descr'], tra['currency'], tra['amount_raw'], \
-            tra['exchange'], amount_eur = transa
-        tra['amount'] = amount_sskm(amount_eur)
-        transactions.append(tra)
-
-    return transactions
-
-
-def csv2tras_diba(fcsv):
-    '''Split a statement into a list of transaction dictionaries (bank Ing. DIBA)'''
-
-    logger.debug(fcsv)
-    tra_list = pdf2csv.csv2transactions(fcsv, saldo_str='Saldo', saldo_pos=1)
-    transactions = []
-    for jtra, transa in enumerate(tra_list):
-        if jtra%2 == 0:
-            tra = {}
-            tra['date'], type_user, amount_eur = transa
-            tra['type'], tra['user'] = type_user.split(' ', 1)
-            tra['amount'] = amount_diba(amount_eur)
-        else:
-            tra['date_currency'], descr, _ = transa
-            if descr:
-                if mand_diba in descr:
-                    tra['mandat'] = descr.split(mand_diba, 1)[1].strip()
-                elif ref_diba in descr:
-                    tra['reference'] = descr.split(ref_diba, 1)[1].strip()
-            transactions.append(tra)
-
-    return transactions
-
-
 class pbs_gui:
 
 
@@ -316,7 +170,7 @@ class pbs_gui:
         bank1 = ttk.Radiobutton(bankframe, text='SSKM', variable=self.bank_wid, value='sskm', command=self.sel)
         bank2 = ttk.Radiobutton(bankframe, text='DiBa', variable=self.bank_wid, value='diba', command=self.sel)
         bank3 = ttk.Radiobutton(bankframe, text='Visa', variable=self.bank_wid, value='visa', command=self.sel)
-        bank4 = ttk.Radiobutton(bankframe, text='KSKMSE', variable=self.bank_wid, value='ksk', command=self.sel)
+        bank4 = ttk.Radiobutton(bankframe, text='KSKMSE', variable=self.bank_wid, value='kskmse', command=self.sel)
         for rb in bank1, bank2, bank3, bank4:
             rb.pack(side=tk.LEFT)
 
@@ -327,9 +181,8 @@ class pbs_gui:
 
         ttk.Label(dirframe, text='Start dir', width=12).pack(side=tk.LEFT)
         self.dir_wid = tk.Entry(dirframe, width=40)
-        self.sel()
         self.dir_wid.pack(side=tk.LEFT)
-        ttk.Button(dirframe, text='Save', command=self.save_dir).pack(side=tk.LEFT)
+        self.sel()
 
         ttk.Label(year1frame, text='Year start', width=12).pack(side=tk.LEFT)
         self.year_beg = tk.IntVar()
@@ -368,27 +221,24 @@ class pbs_gui:
 
     def sel(self):
 
-        self.bank = self.bank_wid.get().strip()
+        bank_label = self.bank_wid.get().strip()
+        if bank_label == 'sskm':
+            self.bank = banks.sskm()
+        elif bank_label == 'visa':
+            self.bank = banks.visa()
+        elif bank_label == 'diba':
+            self.bank = banks.diba()
+        elif bank_label == 'kskmse':
+            self.bank = banks.kskmse()
+
         self.dir_wid.delete(0, tk.END)
-        self.dir_wid.insert(0, bank_path.dir_bank[self.bank])
+        self.dir_wid.insert(0, self.bank.rootDir)
 
 
     def info(self):
     
         self.txt.delete('1.0', tk.END)
         formatHyperLink(self.txt, info_text)
-
-
-    def save_dir(self):
-
-        dir_bank = bank_path.dir_bank
-        new_dir = self.dir_wid.get().strip()
-        dir_bank[self.bank] = new_dir
-        with open('bank_path.py', 'w') as f:
-            f.write('dir_bank = { \\\n')
-            for key, val in dir_bank.items():
-                f.write("'%s': '%s', \\\n" %(key, val))
-            f.write('}\n')
 
         
     def parse_year(self, dir_in):
@@ -398,17 +248,17 @@ class pbs_gui:
         out_str = ''
         logger.debug(dir_in)
         year = int(os.path.basename(dir_in))
-        if self.bank == 'sskm' and year > 2021:
-            self.bank = 'sskm2'
+        if self.bank.label == 'sskm' and year > 2021:
+            self.bank = banks.sskm2()
 
         for f_name in sorted(os.listdir(dir_in)):
             fname = '%s/%s' %(dir_in, f_name)
             pre, ext = os.path.splitext(fname)
-            if (self.bank == 'sskm') and year == 2021:
+            if (self.bank.label == 'sskm') and year == 2021:
                 month = pre.split('_')[-1]
                 if month in ('011', '012'):
-                    self.bank = 'sskm2'
-                    logger.debug('MONTH %s %s', month, self.bank)
+                    self.bank = banks.sskm2()
+                    logger.debug('MONTH %s %s', month, self.bank.label)
 
             if ext.lower() != '.pdf':
                 continue
@@ -418,14 +268,9 @@ class pbs_gui:
             log = pdf2csv.pdf2csv(fpdf, fcsv, self.bank)
             if log is not None:
                 self.txt.insert('insert', log)
-            if self.bank in ('sskm', 'ksk'):
-                tras = csv2tras_sskm(fcsv)
-            elif self.bank == 'sskm2':
-                tras = csv2tras_sskm2(fcsv)
-            elif self.bank == 'diba':
-                tras = csv2tras_diba(fcsv)
-            elif self.bank == 'visa':
-                tras = csv2tras_visa(fcsv)
+
+            tras = self.bank.csv2tras(fcsv)
+
             self.txt.insert('insert', fcsv+'\n') # git
 
 # Parse transactions of a given statement
@@ -447,7 +292,6 @@ class pbs_gui:
 
     def parse(self, plot=True):
 
-        self.bank = self.bank_wid.get().strip()
         self.word = self.word_wid.get().strip()
         dir_root = self.dir_wid.get().strip()
         year_beg = int(self.year_beg.get())
@@ -467,7 +311,8 @@ class pbs_gui:
         self.amount_wid.set('%11.2f' %all_time)
         if plot:
             plot_time(year_beg, year_end, amount, self.fig_time)
-            
+
+
 if __name__ == '__main__':
 
     pbs_gui()

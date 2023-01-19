@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: parse-bank-statements
-Version: 0.1.3
+Version: 0.1.4
 Summary: Package to parse bank statements
 Home-page: https://github.com/tardini/parse_bank_statements.git
 Author: Giovanni Tardini
