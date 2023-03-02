@@ -80,6 +80,7 @@ class sskm:
 
     label   = 'sskm'
     rootDir = '/afs/ipp-garching.mpg.de/home/g/git/attach/sskm/gk'
+#    rootDir = '/home/gio/bank/sskm/gk'
     pdfArea    = (139.5, 60, 707.5, 573)
     pdfColumns = (116.4, 163.3, 360, 465.4)
     ibanStr = 'ubiger-ID:'
@@ -127,6 +128,7 @@ class sskm2:
 
     label = 'sskm2'
     rootDir = '/afs/ipp-garching.mpg.de/home/g/git/attach/sskm/gk'
+#    rootDir = '/home/gio/bank/sskm/gk'
     pdfArea    = (139.5, 60, 750, 573)
     pdfColumns = (122.1, 362.8, 470)
     ibanStr = 'ubiger-ID:'
@@ -172,6 +174,7 @@ class diba:
 
     label   = 'diba'
     rootDir = '/afs/ipp-garching.mpg.de/home/g/git/attach/lucia/diba'
+#    rootDir = '/home/gio/bank/diba'
     pdfArea    = (190, 67, 765, 568)
     pdfColumns = (131, 507)
     mandatStr   = 'Mandat:'
@@ -218,6 +221,7 @@ class visa:
 
     label   = 'visa'
     rootDir = '/afs/ipp-garching.mpg.de/home/g/git/attach/sskm/kk'
+#    rootDir = '/home/gio/bank/sskm/kk'
     pdfArea    = (300, 37, 750, 590)
     pdfColumns = (80, 120, 280, 360, 450, 530)
 
@@ -246,6 +250,7 @@ class kskmse:
 
     label   = 'kskmse'
     rootDir = '/afs/ipp-garching.mpg.de/home/g/git/attach/lucia/kskmse'
+#    rootDir = '/home/gio/bank/kskmse'
     pdfArea    = (139.5, 60, 707.5, 573)
     pdfColumns = (116.4, 163.3, 360, 465.4)
     ibanStr = 'ubiger-ID:'
