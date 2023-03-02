@@ -25,7 +25,7 @@ info_text = \
 '''PARSE BANK STATEMENTS
 
 Author: Giovanni Tardini
-Date: January 20th 2021
+Date: January 19th 2023
 
 The app expects a directory structure of the type:
     <bank_statements_path>/2018
@@ -123,7 +123,7 @@ class pbs_gui:
         pbsmain = tk.Tk()
         from parse_bank_statements import pbs_style
         pbsmain.title('Bank-statement-parser')
-        pbsmain.geometry('800x600')
+        pbsmain.geometry('1000x800')
         pbsmain.configure(background=pbs_style.frc)
 
 # Menubar
@@ -157,8 +157,8 @@ class pbs_gui:
             frame.pack(side=tk.TOP, anchor=tk.W, pady=5)      
 
         outframe.pack(side=tk.TOP, anchor=tk.W, pady=5, expand=1, fill=tk.BOTH)
-        txtframe = ttk.Frame(outframe, width=200)
-        canframe = ttk.Frame(outframe, width=400)
+        txtframe = ttk.Frame(outframe, width=400)
+        canframe = ttk.Frame(outframe, width=450)
         txtframe.pack(side=tk.LEFT, anchor=tk.W, fill=tk.Y)
         canframe.pack(side=tk.LEFT, anchor=tk.W, expand=1, fill=tk.BOTH)
 
