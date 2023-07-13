@@ -175,9 +175,10 @@ class pbs_gui:
             rb.pack(side=tk.LEFT)
 
         ttk.Label(wordframe, text='Keyword').pack(side=tk.LEFT)
-        self.word_wid = tk.Entry(wordframe, width=40)
-        self.word_wid.insert(0, 'plasma')
-        self.word_wid.pack(side=tk.LEFT)
+        self.word_wid = tk.StringVar()
+        word_wid = ttk.Entry(wordframe, width=406, textvariable=self.word_wid)
+        word_wid.insert(0, 'plasma')
+        word_wid.pack(side=tk.LEFT)
 
         ttk.Label(dirframe, text='Start dir', width=12).pack(side=tk.LEFT)
         self.dir_wid = tk.Entry(dirframe, width=40)
@@ -186,16 +187,16 @@ class pbs_gui:
 
         ttk.Label(year1frame, text='Year start', width=12).pack(side=tk.LEFT)
         self.year_beg = tk.IntVar()
-        self.year_beg = tk.Entry(year1frame, width=6)
-        self.year_beg.insert(0, 2015)
-        self.year_beg.pack(side=tk.LEFT)
+        self.year_beg.set(2015)
+        year_beg = ttk.Entry(year1frame, width=6, textvariable=self.year_beg)
+        year_beg.pack(side=tk.LEFT)
 
         now = datetime.datetime.now()
         ttk.Label(year2frame, text='Year end', width=12).pack(side=tk.LEFT)
         self.year_end = tk.IntVar()
-        self.year_end = tk.Entry(year2frame, width=6)
-        self.year_end.insert(0, now.year)
-        self.year_end.pack(side=tk.LEFT)
+        self.year_end.set(now.year)
+        year_end = tk.Entry(year2frame, width=6, textvariable=self.year_end)
+        year_end.pack(side=tk.LEFT)
 
         ttk.Label(amountframe, text='Total').pack(side=tk.LEFT)
         self.amount_wid = tk.StringVar()
@@ -243,6 +244,8 @@ class pbs_gui:
         year = int(os.path.basename(dir_in))
         if self.bank.label == 'sskm' and year > 2021:
             self.bank = banks.sskm2
+        if self.bank.label == 'sskm2' and year <= 2021:
+            self.bank = banks.sskm
 
         for f_name in sorted(os.listdir(dir_in)):
             fname = '%s/%s' %(dir_in, f_name)

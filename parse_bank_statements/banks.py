@@ -1,4 +1,4 @@
-import logging, traceback, csv
+import os, logging, traceback, csv
 from parse_bank_statements import dates
 
 logger = logging.getLogger('PBS.banks')
@@ -9,6 +9,10 @@ AREA boundaries: (top-y, left-x, bottom-y, right-x).
 COLUMNS separators (x-positions).
 To find them out for the specific PDF column format of a given bank's statements, use e.g. gimp, mode typogr.points.
 """
+
+baseDir = '/afs/ipp-garching.mpg.de/home/g/git/attach'
+if not os.path.isdir(baseDir):
+    baseDir = '/home/gio/bank'
 
 
 def amount_sparkasse(str_in):
@@ -79,8 +83,7 @@ class sskm:
 
 
     label   = 'sskm'
-    rootDir = '/afs/ipp-garching.mpg.de/home/g/git/attach/sskm/gk'
-#    rootDir = '/home/gio/bank/sskm/gk'
+    rootDir = '%s/sskm/gk' %baseDir
     pdfArea    = (139.5, 60, 707.5, 573)
     pdfColumns = (116.4, 163.3, 360, 465.4)
     ibanStr = 'ubiger-ID:'
@@ -127,8 +130,7 @@ class sskm:
 class sskm2:
 
     label = 'sskm2'
-    rootDir = '/afs/ipp-garching.mpg.de/home/g/git/attach/sskm/gk'
-#    rootDir = '/home/gio/bank/sskm/gk'
+    rootDir = '%s/sskm/gk' %baseDir
     pdfArea    = (139.5, 60, 750, 573)
     pdfColumns = (122.1, 362.8, 470)
     ibanStr = 'ubiger-ID:'
@@ -173,8 +175,7 @@ class sskm2:
 class diba:
 
     label   = 'diba'
-    rootDir = '/afs/ipp-garching.mpg.de/home/g/git/attach/lucia/diba'
-#    rootDir = '/home/gio/bank/diba'
+    rootDir = '%s/lucia/diba' %baseDir
     pdfArea    = (190, 67, 765, 568)
     pdfColumns = (131, 507)
     mandatStr   = 'Mandat:'
@@ -220,8 +221,7 @@ class diba:
 class visa:
 
     label   = 'visa'
-    rootDir = '/afs/ipp-garching.mpg.de/home/g/git/attach/sskm/kk'
-#    rootDir = '/home/gio/bank/sskm/kk'
+    rootDir = '%s/sskm/kk' %baseDir
     pdfArea    = (300, 37, 750, 590)
     pdfColumns = (80, 120, 280, 360, 450, 530)
 
@@ -249,8 +249,7 @@ class visa:
 class kskmse:
 
     label   = 'kskmse'
-    rootDir = '/afs/ipp-garching.mpg.de/home/g/git/attach/lucia/kskmse'
-#    rootDir = '/home/gio/bank/kskmse'
+    rootDir = '%s/lucia/kskmse' %baseDir
     pdfArea    = (139.5, 60, 707.5, 573)
     pdfColumns = (116.4, 163.3, 360, 465.4)
     ibanStr = 'ubiger-ID:'
