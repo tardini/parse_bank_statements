@@ -7,7 +7,7 @@
 import os, logging
 
 __author__  = 'Giovanni Tardini'
-__version__ = '0.1.7'
+__version__ = '0.1.8'
 __date__    = '13.07.2023'
 
 
