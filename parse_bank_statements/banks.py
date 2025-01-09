@@ -10,9 +10,9 @@ COLUMNS separators (x-positions).
 To find them out for the specific PDF column format of a given bank's statements, use e.g. gimp, mode typogr.points.
 """
 
-baseDir = '/afs/ipp-garching.mpg.de/home/g/git/attach'
+baseDir = '/shares/users/private/git/bank'
 if not os.path.isdir(baseDir):
-    baseDir = '/home/gio/bank'
+    baseDir = '%s/bank' %os.getenv('HOME')
 
 
 def amount_sparkasse(str_in):
