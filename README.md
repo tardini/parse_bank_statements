@@ -21,5 +21,5 @@ pip install parse_bank_statements
 Edit bank_path.py, inserting the actual full paths containing the bank statements (excluding the years' subdirs) <bank_statements_path1>, <bank_statements_path2>, ...
 
 python
->>>from parse_bank_statements import parse_statements as pbs
+>>>import parse_statements as pbs
 >>>pbs.pbs_gui()
