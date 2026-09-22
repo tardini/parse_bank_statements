@@ -1,7 +1,7 @@
 import os, json  # project tabula-py, requiring Java
 
 src_dir = os.path.dirname(os.path.abspath(__file__))
-json_file = f'{src_dir}/banks.json'
+json_file = f'{src_dir}/pdf_geom.json'
 with open(json_file) as json_data:
     banks_d = json.load(json_data)
 
