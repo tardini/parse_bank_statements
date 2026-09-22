@@ -10,7 +10,7 @@ import matplotlib.pylab as plt
 from matplotlib.ticker import MaxNLocator
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
-from parse_bank_statements import pdf2csv, dates, banks
+from parse_bank_statements import pdf2csv, banks
 
 try:
     from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk as nt2tk
@@ -222,8 +222,8 @@ class pbs_gui:
 
     def sel(self):
 
-        bank_label = self.bank_wid.get().strip()
-        self.bank = getattr(banks, bank_label)
+        self.bank_label = self.bank_wid.get().strip()
+        self.bank = getattr(banks, self.bank_label)
 
         self.dir_wid.delete(0, tk.END)
         self.dir_wid.insert(0, self.bank.rootDir)
@@ -234,7 +234,7 @@ class pbs_gui:
         self.txt.delete('1.0', tk.END)
         formatHyperLink(self.txt, info_text)
 
-        
+
     def parse_year(self, dir_in):
         '''Check for given words in statements, case insensitive'''
 
@@ -242,26 +242,27 @@ class pbs_gui:
         out_str = ''
         logger.debug(dir_in)
         year = int(os.path.basename(dir_in))
-        if self.bank.label == 'sskm' and year > 2021:
-            self.bank = banks.sskm2
-        if self.bank.label == 'sskm2' and year <= 2021:
-            self.bank = banks.sskm
+        if self.bank_label == 'sskm' and year > 2021:
+            self.bank_label = 'sskm2'
+        if self.bank_label == 'sskm2' and year <= 2021:
+            self.bank_label = 'sskm'
+        self.bank = getattr(banks, self.bank_label)
 
         for f_name in sorted(os.listdir(dir_in)):
             fname = '%s/%s' %(dir_in, f_name)
             pre, ext = os.path.splitext(fname)
-            if (self.bank.label == 'sskm') and year == 2021:
+            if (self.bank_label == 'sskm') and year == 2021:
                 month = pre.split('_')[-1]
                 if month in ('011', '012'):
                     self.bank = banks.sskm2
-                    logger.debug('MONTH %s %s', month, self.bank.label)
+                    logger.debug('MONTH %s %s', month, self.bank_label)
 
             if ext.lower() != '.pdf':
                 continue
             else:
                 fpdf = fname
             fcsv = os.path.splitext(fpdf)[0] + '.csv'
-            log = pdf2csv.pdf2csv(fpdf, fcsv, self.bank)
+            log = pdf2csv.pdf2csv(fpdf, fcsv, self.bank_label)
             if log is not None:
                 self.txt.insert('insert', log)
 

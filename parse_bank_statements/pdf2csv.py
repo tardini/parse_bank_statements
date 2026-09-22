@@ -1,8 +1,15 @@
-import os  # project tabula-py, requiring Java
+import os, json  # project tabula-py, requiring Java
 
-def pdf2csv(fpdf, fcsv, bank):
+src_dir = os.path.dirname(os.path.abspath(__file__))
+json_file = f'{src_dir}/banks.json'
+with open(json_file) as json_data:
+    banks_d = json.load(json_data)
+
+
+def pdf2csv(fpdf, fcsv, bank_label):
     '''Convert a PDF statement into csv text format'''
 
+    bank_geom = banks_d[bank_label]
     try:
         import tabula
     except:
@@ -15,7 +22,7 @@ def pdf2csv(fpdf, fcsv, bank):
         if os.path.isfile(fcsv):
             log = ''
         else:
-            tabula.convert_into(fpdf, fcsv, output_format="csv", pages="all", area=bank.pdfArea, columns=bank.pdfColumns, silent=True)
+            tabula.convert_into(fpdf, fcsv, output_format="csv", pages="all", area=bank_geom['pdfArea'], columns=bank_geom['pdfColumns'], silent=True)
             log = 'Converting %s into %s\n' %(fpdf, fcsv)
 
     return log

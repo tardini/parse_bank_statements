@@ -7,8 +7,8 @@
 import os, logging
 
 __author__  = 'Giovanni Tardini'
-__version__ = '0.1.9'
-__date__    = '09.01.2025'
+__version__ = '0.2.0'
+__date__    = '22.09.2026'
 
 
 fmt = logging.Formatter('%(asctime)s | %(name)s | %(levelname)s: %(message)s', '%Y-%m-%d %H:%M:%S')

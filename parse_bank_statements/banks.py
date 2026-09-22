@@ -1,5 +1,5 @@
 import os, logging, traceback, csv
-from parse_bank_statements import dates
+from datetime import datetime
 
 logger = logging.getLogger('PBS.banks')
 logger.setLevel(logging.DEBUG)
@@ -13,6 +13,17 @@ To find them out for the specific PDF column format of a given bank's statements
 baseDir = '/shares/users/private/git/bank'
 if not os.path.isdir(baseDir):
     baseDir = '%s/bank' %os.getenv('HOME')
+
+
+def isdate(s):
+    s = s.strip()
+    for fmt in ("%d.%m.%Y", "%d.%m.%y"):
+        try:
+            datetime.strptime(s, fmt)
+            return True
+        except ValueError:
+            pass
+    return False
 
 
 def amount_sparkasse(str_in):
@@ -44,7 +55,7 @@ def csv2transactions(fcsv, date_pos=0, saldo_pos=2, saldo_str='Kontostand'):
         csvreader = csv.reader(csvfile, quotechar='"')
         for jline, line in enumerate(csvreader):
             csvDate = line[date_pos].strip()
-            if dates.isdate(csvDate):
+            if isdate(csvDate):
                 dates_index.append(jline)
         if not(dates_index):
             return transactions
@@ -81,11 +92,7 @@ def csv2transactions(fcsv, date_pos=0, saldo_pos=2, saldo_str='Kontostand'):
 
 class sskm:
 
-
-    label   = 'sskm'
     rootDir = '%s/sskm/gk' %baseDir
-    pdfArea    = (139.5, 60, 707.5, 573)
-    pdfColumns = (116.4, 163.3, 360, 465.4)
     ibanStr = 'ubiger-ID:'
 
     def csv2tras(self, fcsv):
@@ -129,10 +136,7 @@ class sskm:
 
 class sskm2:
 
-    label = 'sskm2'
     rootDir = '%s/sskm/gk' %baseDir
-    pdfArea    = (139.5, 60, 750, 573)
-    pdfColumns = (122.1, 362.8, 470)
     ibanStr = 'ubiger-ID:'
 
     def csv2tras(self, fcsv):
@@ -174,10 +178,7 @@ class sskm2:
 
 class diba:
 
-    label   = 'diba'
-    rootDir = '%s/lucia/diba' %baseDir
-    pdfArea    = (190, 67, 765, 568)
-    pdfColumns = (131, 507)
+    rootDir = '%s/diba' %baseDir
     mandatStr   = 'Mandat:'
     referenzStr = 'Referenz:'
 
@@ -220,10 +221,7 @@ class diba:
 
 class visa:
 
-    label   = 'visa'
-    rootDir = '%s/sskm/kk' %baseDir
-    pdfArea    = (300, 37, 750, 590)
-    pdfColumns = (80, 120, 280, 360, 450, 530)
+    rootDir = '%s/visa' %baseDir
 
     def csv2tras(self, fcsv):
         '''Split a statement into a list of transaction dictionaries)'''
@@ -248,10 +246,7 @@ class visa:
 
 class kskmse:
 
-    label   = 'kskmse'
-    rootDir = '%s/lucia/kskmse' %baseDir
-    pdfArea    = (139.5, 60, 707.5, 573)
-    pdfColumns = (116.4, 163.3, 360, 465.4)
+    rootDir = '%s/kskmse' %baseDir
     ibanStr = 'ubiger-ID:'
 
     def csv2tras(self, fcsv):
