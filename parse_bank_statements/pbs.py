@@ -42,6 +42,14 @@ baseDir = Path('/shares/users/private/git/bank')
 if not baseDir.is_dir():
     baseDir = Path.home() / 'bank'
 
+fmt = logging.Formatter('%(asctime)s | %(name)s | %(levelname)s: %(message)s', '%H:%M:%S')
+logger = logging.getLogger('PBS')
+logger.setLevel(level=logging.INFO)
+if not logger.handlers:
+    hnd = logging.StreamHandler()
+    hnd.setFormatter(fmt)
+    logger.addHandler(hnd)
+
 
 def plot_time(year_beg, year_end, amount, fig_time):
 
@@ -410,17 +418,13 @@ class PBSGui(QMainWindow):
         plot_time(year_beg, year_end, amount, self.fig_time)
 
 
-if __name__ == '__main__':
-
-    fmt = logging.Formatter('%(asctime)s | %(name)s | %(levelname)s: %(message)s', '%H:%M:%S')
-    logger = logging.getLogger('PBS')
-    logger.setLevel(level=logging.INFO)
-    if not logger.handlers:
-        hnd = logging.StreamHandler()
-        hnd.setFormatter(fmt)
-        logger.addHandler(hnd)
+def main():
 
     app = QApplication(sys.argv)
     window = PBSGui()
     window.show()
     sys.exit(app.exec_())
+
+
+if __name__ == '__main__':
+    main()
