@@ -4,4 +4,6 @@ requires = [
     "wheel"
 ]
 build-backend = "setuptools.build_meta"
+
+[project.scripts]
 pbs = "parse_bank_statements.pbs:main"
