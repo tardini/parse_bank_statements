@@ -10,22 +10,17 @@ import matplotlib.pylab as plt
 from matplotlib.ticker import MaxNLocator
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
-from parse_bank_statements import pdf2csv, banks
+from parse_bank_statements import banks
 
 try:
     from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk as nt2tk
 except:
     from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg as nt2tk
 
-logger = logging.getLogger('PBS.parser')
-logger.setLevel(logging.DEBUG)
-#logger.setLevel(logging.INFO)
+logger = logging.getLogger('PBS.gui')
 
 info_text = \
 '''PARSE BANK STATEMENTS
-
-Author: Giovanni Tardini
-Date: January 19th 2023
 
 The app expects a directory structure of the type:
     <bank_statements_path>/2018
@@ -223,7 +218,7 @@ class pbs_gui:
     def sel(self):
 
         self.bank_label = self.bank_wid.get().strip()
-        self.bank = getattr(banks, self.bank_label)
+        self.bank = getattr(banks, self.bank_label.upper())
 
         self.dir_wid.delete(0, tk.END)
         self.dir_wid.insert(0, self.bank.rootDir)
@@ -238,50 +233,24 @@ class pbs_gui:
     def parse_year(self, dir_in):
         '''Check for given words in statements, case insensitive'''
 
-        tot_year = 0
-        out_str = ''
         logger.debug(dir_in)
         year = int(os.path.basename(dir_in))
-        if self.bank_label == 'sskm' and year > 2021:
-            self.bank_label = 'sskm2'
-        if self.bank_label == 'sskm2' and year <= 2021:
-            self.bank_label = 'sskm'
-        self.bank = getattr(banks, self.bank_label)
 
+        tot_year = 0
         for f_name in sorted(os.listdir(dir_in)):
             fname = '%s/%s' %(dir_in, f_name)
             pre, ext = os.path.splitext(fname)
-            if (self.bank_label == 'sskm') and year == 2021:
-                month = pre.split('_')[-1]
-                if month in ('011', '012'):
-                    self.bank = banks.sskm2
-                    logger.debug('MONTH %s %s', month, self.bank_label)
-
             if ext.lower() != '.pdf':
                 continue
             else:
                 fpdf = fname
-            fcsv = os.path.splitext(fpdf)[0] + '.csv'
-            log = pdf2csv.pdf2csv(fpdf, fcsv, self.bank_label)
-            if log is not None:
-                self.txt.insert('insert', log)
 
-            tras = self.bank().csv2tras(fcsv)
-
-            self.txt.insert('insert', fcsv+'\n') # git
-
-# Parse transactions of a given statement
-            for tra in tras:
-                for key in ('descr', 'user', 'type'):
-                    if key in tra.keys():
-                        if self.word.upper() in tra[key].upper():
-                            out_str = 'date: %s  ' %tra['date']
-                            if tra['amount'] is not None:
-                                tot_year += tra['amount']
-                                out_str += '%9.2f\u20ac' %tra['amount']
-                            out_str += '\n'
-                            self.txt.insert('insert', out_str)
-                            break
+            tras = self.bank()
+            df = banks.fromPDF(tras, fpdf)
+            df_filtered = df[df["descr"].str.contains(self.word, case=False, na=False, regex=False)]
+            out_str = df_filtered[["date", "amount"]].to_string(index=False, header=False) + '\n'
+            self.txt.insert('insert', out_str)
+            tot_year += df_filtered["amount"].sum()
         self.txt.insert('insert', '\n%s\nkeyword "%s": %8.2f\u20ac\n\n' %(dir_in, self.word, tot_year))
 
         return tot_year

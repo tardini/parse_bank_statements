@@ -1,22 +1,28 @@
-import os, logging, traceback, csv
+import os, logging, traceback, re
+from pathlib import Path
 from datetime import datetime
+import pandas as pd
+import pdfplumber
 
 logger = logging.getLogger('PBS.banks')
 logger.setLevel(logging.DEBUG)
-
-help = """
-AREA boundaries: (top-y, left-x, bottom-y, right-x).
-COLUMNS separators (x-positions).
-To find them out for the specific PDF column format of a given bank's statements, use e.g. gimp, mode typogr.points.
-"""
 
 baseDir = '/shares/users/private/git/bank'
 if not os.path.isdir(baseDir):
     baseDir = '%s/bank' %os.getenv('HOME')
 
-
+translate_header = {'Datum': 'date', 'Wert': 'date2', 'Erläuterung': 'descr',
+                    'Betrag Soll EUR': 'amount in', 'Betrag Haben EUR': 'amount out',
+                    'Betrag EUR': 'Amount', 'Buchung': 'date',
+                    'Buchung / Verwendungszweck': 'descr', 'Betrag (EUR)': 'Amount',
+                    'Beleg-': 'date', 'Eingang': 'date2',
+                    'Angabe des Unternehmens /': 'descr',
+                    'Währung': 'currency', 'Betrag': 'amount orig',
+                    'Kurs': 'change', 'Betrag in': 'Amount'}
+    
 def isdate(s):
-    s = s.strip()
+    s = s.strip().replace(' ','')
+#    s = s.strip()
     for fmt in ("%d.%m.%Y", "%d.%m.%y"):
         try:
             datetime.strptime(s, fmt)
@@ -26,262 +32,209 @@ def isdate(s):
     return False
 
 
-def amount_sparkasse(str_in):
-    '''Convert string to float (money amount)'''
+def to_numeric(df_col):
+    def convert_one(s):
+        s = s.strip()
+        if not s:
+            return 0.0
+        s = (s.replace(".", "").replace(",", "."))  # German -> international comma
 
-    moneyStr = str_in.strip().replace('.', '').replace(',', '.')
+# trailing + or - sign
+        if s.endswith("-"):
+            s = "-" + s[:-1]
+        elif s.endswith("+"):
+            s = s[:-1]
+        return float(s)
 
-    money = 0
-    for contrib in moneyStr.split('\n'):
-        if contrib == '':
-            return None
-        try:
-            moneyVal = float(contrib[:-1])
-            if contrib[-1] == '-':
-                moneyVal = -moneyVal
-            money += moneyVal
-        except:
-            traceback.print_exc()
-            money = None
-
-    return money
+    return df_col.fillna("").str.split("\n").apply(
+        lambda values: sum(convert_one(v) for v in values))
 
 
-def csv2transactions(fcsv, date_pos=0, saldo_pos=2, saldo_str='Kontostand'):
+def get_word_pos(words, keyword):
+    for word in words:
+        if word['text'] == keyword:
+            return word['x0'], word['bottom']
+    return None
 
-    transactions = []
-    dates_index = []
-    with open(fcsv, newline='') as csvfile:
-        csvreader = csv.reader(csvfile, quotechar='"')
-        for jline, line in enumerate(csvreader):
-            csvDate = line[date_pos].strip()
-            if isdate(csvDate):
-                dates_index.append(jline)
-        if not(dates_index):
-            return transactions
-        firstDateLine = dates_index[0]
-        lastDateLine  = dates_index[-1]
 
-    with open(fcsv, newline='') as csvfile:
-        csvreader = csv.reader(csvfile, quotechar='"')
-        for jline, line in enumerate(csvreader):
-            if jline < firstDateLine:
-                continue
-            csvDate = line[date_pos].strip()
-            descr   = line[saldo_pos].strip()
-            if jline in dates_index: # Line containing date
-                if jline > firstDateLine:  # Not first date-line ever: close previous tra
-                    transactions.append(tra)
-                tra = [x.strip() for x in line] # Start a new tra
-            else:
-                if saldo_str in descr and jline > lastDateLine:
-                    break
-                if csvDate: # Not a date, not empty either
-                    if jline > lastDateLine: # bottom, close csv
+def print_all_words(page):
+    words = page.extract_words()
+    for word in words:
+        print(word)
+
+
+def get_row(page, keyword):
+    words = page.extract_words(x_tolerance=2, keep_blank_chars=True)
+    x0, y0 = get_word_pos(words, keyword)
+    words_in_line = [word for word in words if abs(word['bottom'] - y0) < 1]
+    row = [word['text'].strip() for word in words_in_line]
+    return row, words_in_line[0]['x0'], words_in_line[0]['bottom']
+
+
+def get_table_area(page, bank=''):
+
+# Get all horizontal lines
+    hlines = [l for l in page.lines if l['height'] == 0 and l["width"] > 20]
+
+# Vertical extent
+    if len(hlines) >= 2:
+        line_up   = min(hlines, key=lambda l: l["top"])
+        line_down = max(hlines, key=lambda l: l["top"])
+        y_up   = line_up["top"]
+        y_down = line_down["bottom"]
+    elif len(hlines) == 1:
+        y_up   = hlines[0]["top"]
+        y_down = page.height
+    else:
+        return None
+
+# Horizontal extent
+    xmin = hlines[0]["x0"]
+    xmax = hlines[0]["x1"]
+
+    return [xmin, y_up, xmax, y_down]
+
+
+class STATEMENT:
+
+
+    def __init__(self, bank, fpdf):
+
+        logger.info(fpdf)
+        bank_name = bank.__class__.__name__
+        logger.info(bank_name)
+        settings = {key: val for key, val in bank.settings.items()}
+
+        with pdfplumber.open(fpdf) as pdf:
+            self.header, xh, yh = get_row(pdf.pages[0], bank.headerKeyword)
+            logger.info(self.header)
+            for jpage, page in enumerate(pdf.pages):
+                margins = get_table_area(page)
+                logger.debug('Page: %s, Auto margins: %s', jpage, margins)
+
+                if bank_name in ('SSKM', 'KSKMSE'):
+                    left_margin = xh
+                    if left_margin is None:
                         break
-                    else:  # Out of statements table, ignore line
-                        continue
-                else:       # Empty first entry, append to previous strings
-                    tra = [(tra[jpos] + '\n' + x).strip() for jpos, x in enumerate(line)]
+                    margins = [left_margin-10, 0, page.width, page.height]
+                else:
+                    if margins is None: # No horizontal line
+                        break
+                    if bank_name in ('VISA', 'DIBA'):
+                        margins = [margins[0], margins[1], page.width, page.height]
+                logger.debug('Page: %s, New  margins: %s', jpage, margins)
 
-    transactions.append(tra)
+                table_page = page.crop(margins)
+                page_table = table_page.extract_table(settings)
+                if jpage == 0:
+                    self.table = page_table
+                else:
+                    if page_table is not None:
+                        self.table += page_table
 
-    return transactions
+        self.stripTable(endString=bank.endString)
+        if self.table is not None: # 0 transactions, only saldo
+            self.balance = self.table[-1][-1]
+            self.table = self.table[:-1] # Cut Saldo line
 
 
+    def stripTable(self, endString='Neuer Saldo'):
 
-class sskm:
+# Remove empty rows or rows containing given keywords
+        table = []
+        for row in self.table:
+            if (not row[0]) or (isdate(row[0])): # Skip row if first entry is not date nor blank
+                concat = ''.join(row).strip()
+                if concat:
+                    if ('Zwischensumme' not in concat) and ('Übertrag' not in concat):
+                        table.append(row)
+            if endString in row:
+                break
 
+        date_rowIndex = [j for j, row in enumerate(table) if isdate(row[0])]
+        
+        if date_rowIndex:
+# Cut table before first date
+            self.table = table[date_rowIndex[0]:]
+            self.date_rowIndex = [j for j, row in enumerate(self.table) if isdate(row[0])]
+        else:
+            self.table = None
+
+
+    def to_df(self):
+
+        blocks_d = {}
+        if self.table is None: # PDF with o transactions, just Saldo
+            columns = [translate_header[word] for word in self.header]
+            self.df = pd.DataFrame(columns=columns)
+        else:
+            for jcol, word in enumerate(self.header):
+                key = translate_header[word]
+                blocks_d[key] = ['\n'.join(row[jcol] for row in self.table[start:end] if row[jcol])
+                    for start, end in zip(self.date_rowIndex, self.date_rowIndex[1:] + [len(self.table)]) ]
+            self.df = pd.DataFrame(blocks_d)
+            
+        if 'amount in' in self.df.columns:
+            self.df['amount'] = to_numeric(self.df['amount in']) + to_numeric(self.df['amount out'])
+        else:
+            self.df['amount'] = to_numeric(self.df['Amount'])
+
+
+def fromPDF(bank, fpdf):
+    logger.debug(fpdf)
+    stat = STATEMENT(bank, fpdf)
+    stat.to_df()
+    return stat.df
+
+class SSKM:
     rootDir = '%s/sskm/gk' %baseDir
-    ibanStr = 'ubiger-ID:'
+    endString = None
+    headerKeyword = 'Erläuterung'
+    settings = {
+        "vertical_strategy": "lines",
+        "horizontal_strategy": "text",
+    }
 
-    def csv2tras(self, fcsv):
-        '''Split a statement into a list of transaction dictionaries'''
-
-        logger.debug(fcsv)
-        tra_list = csv2transactions(fcsv)
-        transactions = []
-        for transa in tra_list:
-            if len(transa) == 4:
-                transa.append('')
-            tra = {}
-            tra['date'], tra['date_currency'], tra['descr'], amount_out, amount_in = transa
-            if self.ibanStr in tra['descr']:
-                descr, tra['iban'] = tra['descr'].split(self.ibanStr, 1)
-                tra['iban'] = tra['iban'].strip()
-                tra['descr'] = descr.strip()
-            else:
-                tra['iban'] = None
-            descr = tra['descr'] # parse a bit more
-            if descr.count('\n') > 1:
-                tra['type'], tra['user'], tra['descr'] = descr.split('\n', 2)
-            elif descr.count('\n') > 0:
-                tra['type'], tra['descr'] = descr.split('\n', 1)
-            tra['descr'] = tra['descr'].strip()
-            minus = self.amount(amount_in)
-            if minus is not None:
-                tra['amount'] = minus
-            else:
-                tra['amount'] = self.amount(amount_out)
-
-            transactions.append(tra)
-
-        return transactions
-
-    def amount(self, str_in):
-        '''Convert string to float (money amount)'''
-
-        return(amount_sparkasse(str_in))
-
-
-class sskm2:
-
-    rootDir = '%s/sskm/gk' %baseDir
-    ibanStr = 'ubiger-ID:'
-
-    def csv2tras(self, fcsv):
-
-        '''Split a statement into a list of transaction dictionaries'''
-
-        logger.debug(fcsv)
-        tra_list = csv2transactions(fcsv, saldo_pos=1)
-        transactions = []
-        for transa in tra_list:
-            tra = {}
-            tra['date'], tra['descr'], amount_out, amount_in = transa
-            if self.ibanStr in tra['descr']:
-                descr, tra['iban'] = tra['descr'].split(self.ibanStr, 1)
-                tra['iban'] = tra['iban'].strip()
-                tra['descr'] = descr.strip()
-            else:
-                tra['iban'] = None
-            descr = tra['descr'] # parse a bit more
-            if descr.count('\n') > 1:
-                tra['type'], tra['user'], tra['descr'] = descr.split('\n', 2)
-            elif descr.count('\n') > 0:
-                tra['type'], tra['descr'] = descr.split('\n', 1)
-            tra['descr'] = tra['descr'].strip()
-            minus = self.amount(amount_in)
-            if minus is not None:
-                tra['amount'] = minus
-            else:
-                tra['amount'] = self.amount(amount_out)
-            transactions.append(tra)
-
-        return transactions
-
-    def amount(self, str_in):
-        '''Convert string to float (money amount)'''
-
-        return(amount_sparkasse(str_in))
-
-
-class diba:
-
-    rootDir = '%s/diba' %baseDir
-    mandatStr   = 'Mandat:'
-    referenzStr = 'Referenz:'
-
-    def csv2tras(self, fcsv):
-        '''Split a statement into a list of transaction dictionaries'''
-
-        logger.debug(fcsv)
-        tra_list = csv2transactions(fcsv, saldo_str='Saldo', saldo_pos=1)
-        transactions = []
-        for jtra, transa in enumerate(tra_list):
-            if jtra%2 == 0:
-                tra = {}
-                tra['date'], type_user, amount_eur = transa
-                tra['type'], tra['user'] = type_user.split(' ', 1)
-                tra['amount'] = self.amount(amount_eur)
-            else:
-                tra['date_currency'], descr, _ = transa
-                if descr:
-                    if self.mandatStr in descr:
-                        tra['mandat'] = descr.split(self.mandatStr, 1)[1].strip()
-                    elif self.referenzStr in descr:
-                        tra['reference'] = descr.split(self.referenzStr, 1)[1].strip()
-                transactions.append(tra)
-
-        return transactions
-
-    def amount(self, str_in):
-        '''Convert string to float (money amount)'''
-
-        str_in = str_in.strip().replace('.', '').replace(',', '.')
-        if str_in == '':
-            return None
-        try:
-            money = float(str_in)
-        except:
-            traceback.print_exc()
-            money = None
-        return money
-
-
-class visa:
-
-    rootDir = '%s/visa' %baseDir
-
-    def csv2tras(self, fcsv):
-        '''Split a statement into a list of transaction dictionaries)'''
-
-        logger.debug(fcsv)
-        tra_list = csv2transactions(fcsv, saldo_str='Saldo', saldo_pos=2)
-        transactions = []
-        for transa in tra_list:
-            tra = {}
-            tra['date'], tra['date_currency'], tra['descr'], tra['currency'], tra['amount_raw'], \
-                tra['exchange'], amount_eur = transa
-            tra['amount'] = self.amount(amount_eur)
-            transactions.append(tra)
-
-        return transactions
-
-    def amount(self, str_in):
-        '''Convert string to float (money amount)'''
-
-        return(amount_sparkasse(str_in))
-
-
-class kskmse:
-
+class KSKMSE:
     rootDir = '%s/kskmse' %baseDir
-    ibanStr = 'ubiger-ID:'
+    endString = None
+    headerKeyword = 'Erläuterung'
+    settings = {
+        "vertical_strategy": "lines",
+        "horizontal_strategy": "text",
+    }
 
-    def csv2tras(self, fcsv):
-        '''Split a statement into a list of transaction dictionaries'''
+class DIBA:
+    rootDir = '%s/diba' %baseDir
+    endString = 'Neuer Saldo'
+    headerKeyword = 'Buchung / Verwendungszweck'
+    settings = {
+        "vertical_strategy": "explicit",
+        "explicit_vertical_lines": [70, 131, 490, 555],
+        "horizontal_strategy": "text",
+    }
 
-        logger.debug(fcsv)
-        tra_list = csv2transactions(fcsv)
-        transactions = []
-        for transa in tra_list:
-            if len(transa) == 4:
-                transa.append('')
-            tra = {}
-            tra['date'], tra['date_currency'], tra['descr'], amount_out, amount_in = transa
-            if self.ibanStr in tra['descr']:
-                descr, tra['iban'] = tra['descr'].split(self.ibanStr, 1)
-                tra['iban'] = tra['iban'].strip()
-                tra['descr'] = descr.strip()
-            else:
-                tra['iban'] = None
-            descr = tra['descr'] # parse a bit more
-            if descr.count('\n') > 1:
-                tra['type'], tra['user'], tra['descr'] = descr.split('\n', 2)
-            elif descr.count('\n') > 0:
-                tra['type'], tra['descr'] = descr.split('\n', 1)
-            tra['descr'] = tra['descr'].strip()
-            minus = self.amount(amount_in)
-            if minus is not None:
-                tra['amount'] = minus
-            else:
-                tra['amount'] = self.amount(amount_out)
+class VISA:
+    rootDir = '%s/sskm/kk' %baseDir
+    endString='Neuer Saldo'
+    headerKeyword = 'Währung'
+    settings = {
+        "vertical_strategy": "explicit",
+        "explicit_vertical_lines": [40, 81, 120, 300, 360, 450, 515, 580],
+        "horizontal_strategy": "text",
+    }
 
-            transactions.append(tra)
 
-        return transactions
+if __name__ == '__main__':
 
-    def amount(self, str_in):
+    if not logger.handlers:
+        fmt = logging.Formatter('%(asctime)s | %(name)s | %(levelname)s: %(message)s', '%H:%M:%S')
+        hnd = logging.StreamHandler()
+        hnd.setFormatter(fmt)
+        logger.addHandler(hnd)
 
-        return(amount_sparkasse(str_in))
+    fpdf = '/shares/users/private/git/bank/sskm/gk/2026/Konto_0000131409-Auszug_2026_0001.PDF'
+    fpdf = '/home/IPP-AD/git/Downloads/10_Oktober25.pdf'
+    sskm = SSKM()
+    df = fromPDF(sskm, fpdf)
+    print(df['amount'])

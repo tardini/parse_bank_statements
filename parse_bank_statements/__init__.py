@@ -11,14 +11,13 @@ __version__ = '0.2.0'
 __date__    = '22.09.2026'
 
 
-fmt = logging.Formatter('%(asctime)s | %(name)s | %(levelname)s: %(message)s', '%Y-%m-%d %H:%M:%S')
-hnd = logging.StreamHandler()
-hnd.setFormatter(fmt)
-hnd.setLevel(level=logging.INFO)
+fmt = logging.Formatter('%(asctime)s | %(name)s | %(levelname)s: %(message)s', '%H:%M:%S')
 logger = logging.getLogger('PBS')
-logger.addHandler(hnd)
-logger.setLevel(logging.INFO)
-logger.propagate = False
+logger.setLevel(level=logging.INFO)
+if not logger.handlers:
+    hnd = logging.StreamHandler()
+    hnd.setFormatter(fmt)
+    logger.addHandler(hnd)
 
 pbs_home = os.path.dirname(os.path.realpath(__file__))
 
