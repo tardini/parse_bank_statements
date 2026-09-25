@@ -16,14 +16,10 @@ from matplotlib.ticker import MaxNLocator
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT
 from matplotlib.figure import Figure
-
 from parse_bank_statements import banks
+from parse_bank_statements import __version__ as version
 
 pbs_home = Path(__file__).resolve().parent
-
-logger = logging.getLogger('PBS.gui')
-logger.info('Using version %s', __version__)
-logger.info('PBS home %s', pbs_home)
 
 info_text = \
 '''PARSE BANK STATEMENTS
@@ -80,6 +76,9 @@ class PBSGui(QMainWindow):
     def __init__(self):
 
         super().__init__()
+
+        logger.info('Using version %s', version)
+        logger.info('PBS home %s', pbs_home)
 
         self.setWindowTitle('Bank-statement-parser')
         self.resize(1000, 800)
