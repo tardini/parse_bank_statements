@@ -8,9 +8,7 @@ and the statements to be PDF.
 
 The package allows to parse several bank accounts. Each bank has its <bank_statements_path>, this can be stored from the GUI and will be loaded on future usage.
 
-Docu at https://www2.ipp.mpg.de/~git/pbs/index.html
-
-PDF files are converted (una tantum) into CSV, based on the open source java-based package tabula-py (see https://pypi.org/project/tabula-py). If you do not need this conversion because you have csv's, you do not need tabula_py.
+PDF files are parsed with the package pdfplumber
 
 Supported banks: SSKM-Gyrokonto, Ing.Diba, SSKM-Visa-Kreditkarte, KSKMSE
 
@@ -18,8 +16,6 @@ Usage:
 
 pip install parse_bank_statements
 
-Edit bank_path.py, inserting the actual full paths containing the bank statements (excluding the years' subdirs) <bank_statements_path1>, <bank_statements_path2>, ...
+Edit banks.py, inserting the actual full root-paths containing the bank statements
 
-python
->>>import parse_statements as pbs
->>>pbs.pbs_gui()
+$PBS_HOME/pbs.py

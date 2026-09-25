@@ -19,10 +19,6 @@ from matplotlib.figure import Figure
 
 from parse_bank_statements import banks
 
-__author__  = 'Giovanni Tardini'
-__version__ = '1.0.0'
-__date__    = '25.09.2026'
-
 pbs_home = Path(__file__).resolve().parent
 
 logger = logging.getLogger('PBS.gui')

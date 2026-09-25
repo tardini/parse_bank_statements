@@ -1,11 +1,13 @@
 module purge
-#module load miniforge3
+module load miniforge3
 
 rm -r dist
-rm -r src/parse_bank_statements.egg-info
+rm -r parse_bank_statements.egg-info
 
 python -m build
 python -m twine upload --repository pypi dist/*
+
+module purge
 
 pip uninstall parse_bank_statements
 pip install parse_bank_statements
