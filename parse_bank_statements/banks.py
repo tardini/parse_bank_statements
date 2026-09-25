@@ -1,15 +1,9 @@
-import os, logging, traceback, re
-from pathlib import Path
+import logging
 from datetime import datetime
 import pandas as pd
 import pdfplumber
 
 logger = logging.getLogger('PBS.banks')
-logger.setLevel(logging.DEBUG)
-
-baseDir = '/shares/users/private/git/bank'
-if not os.path.isdir(baseDir):
-    baseDir = '%s/bank' %os.getenv('HOME')
 
 translate_header = {'Datum': 'date', 'Wert': 'date2', 'Erläuterung': 'descr',
                     'Betrag Soll EUR': 'amount in', 'Betrag Haben EUR': 'amount out',
@@ -187,7 +181,7 @@ def fromPDF(bank, fpdf):
     return stat.df
 
 class SSKM:
-    rootDir = '%s/sskm/gk' %baseDir
+    rootDir = 'sskm/gk'
     endString = None
     headerKeyword = 'Erläuterung'
     settings = {
@@ -196,7 +190,7 @@ class SSKM:
     }
 
 class KSKMSE:
-    rootDir = '%s/kskmse' %baseDir
+    rootDir = 'kskmse'
     endString = None
     headerKeyword = 'Erläuterung'
     settings = {
@@ -205,7 +199,7 @@ class KSKMSE:
     }
 
 class DIBA:
-    rootDir = '%s/diba' %baseDir
+    rootDir = 'diba'
     endString = 'Neuer Saldo'
     headerKeyword = 'Buchung / Verwendungszweck'
     settings = {
@@ -215,7 +209,7 @@ class DIBA:
     }
 
 class VISA:
-    rootDir = '%s/sskm/kk' %baseDir
+    rootDir = 'sskm/kk'
     endString='Neuer Saldo'
     headerKeyword = 'Währung'
     settings = {

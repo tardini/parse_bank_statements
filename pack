@@ -1,5 +1,5 @@
 module purge
-module load miniforge3
+#module load miniforge3
 
 rm -r dist
 rm -r src/parse_bank_statements.egg-info
