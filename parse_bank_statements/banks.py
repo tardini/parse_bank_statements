@@ -52,12 +52,6 @@ def get_word_pos(words, keyword):
     return None
 
 
-def print_all_words(page):
-    words = page.extract_words()
-    for word in words:
-        print(word)
-
-
 def get_row(page, keyword):
     words = page.extract_words(x_tolerance=2, keep_blank_chars=True)
     x0, y0 = get_word_pos(words, keyword)
@@ -179,7 +173,6 @@ def fromFile(bank, fpdf):
     logger.debug(fpdf)
     filename = Path(fpdf)
     fcsv = filename.with_suffix('.csv')
-    fpqt = filename.with_suffix('.parquet')
     if fcsv.is_file():
         df = pd.read_csv(fcsv)
     else:
