@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 import pandas as pd
 import pdfplumber
+from pathlib import Path
 
 logger = logging.getLogger('PBS.banks')
 
@@ -174,11 +175,20 @@ class STATEMENT:
             self.df['amount'] = to_numeric(self.df['Amount'])
 
 
-def fromPDF(bank, fpdf):
+def fromFile(bank, fpdf):
     logger.debug(fpdf)
-    stat = STATEMENT(bank, fpdf)
-    stat.to_df()
-    return stat.df
+    filename = Path(fpdf)
+    fcsv = filename.with_suffix('.csv')
+    fpqt = filename.with_suffix('.parquet')
+    if fcsv.is_file():
+        df = pd.read_csv(fcsv)
+    else:
+        stat = STATEMENT(bank, fpdf)
+        stat.to_df()
+        df = stat.df
+        df.to_csv(fcsv)
+    return df
+
 
 class SSKM:
     rootDir = 'sskm/gk'

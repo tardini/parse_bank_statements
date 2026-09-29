@@ -369,7 +369,7 @@ class PBSGui(QMainWindow):
                 continue
             fpdf = fname
             tras = self.bank()
-            df = banks.fromPDF(tras, fpdf)
+            df = banks.fromFile(tras, fpdf)
             df_filtered = df[
                 df["descr"].str.contains(
                     self.word,
