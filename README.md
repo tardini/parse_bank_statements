@@ -19,3 +19,7 @@ pip install parse_bank_statements
 Edit banks.py, inserting the actual full root-paths containing the bank statements
 
 $PBS_HOME/pbs.py
+or
+python
+>>>from parse_bank_statements import pbs
+>>>pbs.main()

@@ -14,7 +14,8 @@ translate_header = {'Datum': 'date', 'Wert': 'date2', 'Erläuterung': 'descr',
                     'Angabe des Unternehmens /': 'descr',
                     'Währung': 'currency', 'Betrag': 'amount orig',
                     'Kurs': 'change', 'Betrag in': 'Amount'}
-    
+
+
 def isdate(s):
     s = s.strip().replace(' ','')
 #    s = s.strip()
@@ -155,18 +156,20 @@ class STATEMENT:
         blocks_d = {}
         if self.table is None: # PDF with o transactions, just Saldo
             columns = [translate_header[word] for word in self.header]
-            self.df = pd.DataFrame(columns=columns)
+            df = pd.DataFrame(columns=columns)
         else:
             for jcol, word in enumerate(self.header):
                 key = translate_header[word]
                 blocks_d[key] = ['\n'.join(row[jcol] for row in self.table[start:end] if row[jcol])
                     for start, end in zip(self.date_rowIndex, self.date_rowIndex[1:] + [len(self.table)]) ]
-            self.df = pd.DataFrame(blocks_d)
+            df = pd.DataFrame(blocks_d)
             
-        if 'amount in' in self.df.columns:
-            self.df['amount'] = to_numeric(self.df['amount in']) + to_numeric(self.df['amount out'])
+        if 'amount in' in df.columns:
+            df['amount'] = to_numeric(df['amount in']) + to_numeric(df['amount out'])
         else:
-            self.df['amount'] = to_numeric(self.df['Amount'])
+            df['amount'] = to_numeric(df['Amount'])
+
+        return df
 
 
 def fromFile(bank, fpdf):
@@ -177,8 +180,7 @@ def fromFile(bank, fpdf):
         df = pd.read_csv(fcsv)
     else:
         stat = STATEMENT(bank, fpdf)
-        stat.to_df()
-        df = stat.df
+        df = stat.to_df()
         df.to_csv(fcsv)
     return df
 
@@ -233,5 +235,5 @@ if __name__ == '__main__':
     fpdf = '/shares/users/private/git/bank/sskm/gk/2026/Konto_0000131409-Auszug_2026_0001.PDF'
     fpdf = '/home/IPP-AD/git/Downloads/10_Oktober25.pdf'
     sskm = SSKM()
-    df = fromPDF(sskm, fpdf)
+    df = fromFile(sskm, fpdf)
     print(df['amount'])

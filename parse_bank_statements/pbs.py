@@ -9,8 +9,8 @@ from PyQt5.QtWidgets import (
     QLabel, QLineEdit, QPushButton, QRadioButton, QButtonGroup,
     QPlainTextEdit, QAction
 )
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont, QTextCharFormat
+from PyQt5.QtCore import Qt, QUrl, QEvent
+from PyQt5.QtGui import QFont, QTextCharFormat, QDesktopServices, QTextCursor
 
 from matplotlib.ticker import MaxNLocator
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
@@ -20,6 +20,10 @@ from parse_bank_statements import banks
 from parse_bank_statements import __version__ as version
 
 pbs_home = Path(__file__).resolve().parent
+os.environ['BROWSER'] = '/usr/bin/google-chrome'
+baseDir = Path('/shares/users/private/git/bank')
+if not baseDir.is_dir():
+    baseDir = Path.home() / 'bank'
 
 info_text = \
 '''PARSE BANK STATEMENTS
@@ -33,14 +37,8 @@ Each bank has its <bank_statements_path>, this can be stored from the GUI and wi
 
 Supported banks: SSKM-Gyrokonto, Ing.Diba, SSKM-Visa-Kreditkarte, KSKMSE
 
-Repository <a href="https://github.com/tardini/parse_bank_statements.git">PBS github</a>
+Repository <a href="https://github.com/tardini/parse_bank_statements">PBS github</a> 
 '''
-
-os.environ['BROWSER'] = '/usr/bin/google-chrome'
-
-baseDir = Path('/shares/users/private/git/bank')
-if not baseDir.is_dir():
-    baseDir = Path.home() / 'bank'
 
 fmt = logging.Formatter('%(asctime)s | %(name)s | %(levelname)s: %(message)s', '%H:%M:%S')
 logger = logging.getLogger('PBS')
@@ -79,6 +77,25 @@ def plot_time(year_beg, year_end, amount, fig_time):
     fig_time.canvas.draw()
 
 
+class LinkPlainTextEdit(QPlainTextEdit):
+
+    def mousePressEvent(self, event):
+        cursor = self.cursorForPosition(event.pos())
+
+        # Select the character immediately after the cursor position
+        cursor.movePosition(
+            QTextCursor.NextCharacter,
+            QTextCursor.KeepAnchor
+        )
+
+        fmt = cursor.charFormat()
+        if fmt.isAnchor() and fmt.anchorHref():
+            QDesktopServices.openUrl(QUrl(fmt.anchorHref()))
+            return
+
+        super().mousePressEvent(event)
+
+
 class PBSGui(QMainWindow):
 
     def __init__(self):
@@ -96,9 +113,9 @@ class PBSGui(QMainWindow):
 
         self.sel()
 
-    # ------------------------------------------------------------------
-    # GUI creation
-    # ------------------------------------------------------------------
+# ------------------------------------------------------------------
+# GUI creation
+# ------------------------------------------------------------------
 
     def _create_menu(self):
 
@@ -125,9 +142,9 @@ class PBSGui(QMainWindow):
 
         main_layout = QVBoxLayout(central)
 
-        # --------------------------------------------------------------
-        # Parse button
-        # --------------------------------------------------------------
+# --------------------------------------------------------------
+# Parse button
+# --------------------------------------------------------------
 
         bt_layout = QHBoxLayout()
 
@@ -140,9 +157,9 @@ class PBSGui(QMainWindow):
 
         main_layout.addLayout(bt_layout)
 
-        # --------------------------------------------------------------
-        # Start directory
-        # --------------------------------------------------------------
+# --------------------------------------------------------------
+# Start directory
+# --------------------------------------------------------------
 
         dir_layout = QHBoxLayout()
 
@@ -158,9 +175,9 @@ class PBSGui(QMainWindow):
 
         main_layout.addLayout(dir_layout)
 
-        # --------------------------------------------------------------
-        # Bank
-        # --------------------------------------------------------------
+# --------------------------------------------------------------
+# Bank
+# --------------------------------------------------------------
 
         bank_layout = QHBoxLayout()
 
@@ -186,9 +203,9 @@ class PBSGui(QMainWindow):
         bank_layout.addStretch()
         main_layout.addLayout(bank_layout)
 
-        # --------------------------------------------------------------
-        # Keyword
-        # --------------------------------------------------------------
+# --------------------------------------------------------------
+# Keyword
+# --------------------------------------------------------------
 
         word_layout = QHBoxLayout()
 
@@ -202,9 +219,9 @@ class PBSGui(QMainWindow):
 
         main_layout.addLayout(word_layout)
 
-        # --------------------------------------------------------------
-        # Year start
-        # --------------------------------------------------------------
+# --------------------------------------------------------------
+# Year start
+# --------------------------------------------------------------
 
         year1_layout = QHBoxLayout()
 
@@ -220,9 +237,9 @@ class PBSGui(QMainWindow):
 
         main_layout.addLayout(year1_layout)
 
-        # --------------------------------------------------------------
-        # Year end
-        # --------------------------------------------------------------
+# --------------------------------------------------------------
+# Year end
+# --------------------------------------------------------------
 
         year2_layout = QHBoxLayout()
 
@@ -238,9 +255,9 @@ class PBSGui(QMainWindow):
 
         main_layout.addLayout(year2_layout)
 
-        # --------------------------------------------------------------
-        # Total
-        # --------------------------------------------------------------
+# --------------------------------------------------------------
+# Total
+# --------------------------------------------------------------
 
         amount_layout = QHBoxLayout()
 
@@ -255,13 +272,13 @@ class PBSGui(QMainWindow):
 
         main_layout.addLayout(amount_layout)
 
-        # --------------------------------------------------------------
-        # Output + plot
-        # --------------------------------------------------------------
+# --------------------------------------------------------------
+# Output + plot
+# --------------------------------------------------------------
 
         output_layout = QHBoxLayout()
 
-        self.txt = QPlainTextEdit()
+        self.txt = LinkPlainTextEdit()
         self.txt.setUndoRedoEnabled(True)
         self.txt.setFont(QFont('Arial', 10))
         self.txt.setReadOnly(True)
@@ -270,7 +287,7 @@ class PBSGui(QMainWindow):
 
         output_layout.addWidget(self.txt, 1)
 
-        # Matplotlib
+# Matplotlib
         self.fig_time = Figure(figsize=(4., 3.), dpi=100)
 
         self.can_time = FigureCanvasQTAgg(self.fig_time)
@@ -289,16 +306,16 @@ class PBSGui(QMainWindow):
 
         self._set_info_text()
 
-    # ------------------------------------------------------------------
-    # Helper methods
-    # ------------------------------------------------------------------
 
+# ------------------------------------------------------------------
+# Helper methods
+# ------------------------------------------------------------------
     def _set_info_text(self):
 
         self.txt.clear()
 
-        # QPlainTextEdit doesn't interpret HTML, so handle the
-        # informational text separately.
+# QPlainTextEdit doesn't interpret HTML, so handle the
+# informational text separately.
         cursor = self.txt.textCursor()
 
         start = 0
@@ -313,9 +330,9 @@ class PBSGui(QMainWindow):
             url = match.group('address')
             title = match.group('title')
 
-            # QPlainTextEdit doesn't support clickable rich-text
-            # hyperlinks, so make the repository link clickable
-            # through the QTextCursor's anchor formatting.
+# QPlainTextEdit doesn't support clickable rich-text
+# hyperlinks, so make the repository link clickable
+# through the QTextCursor's anchor formatting.
             from PyQt5.QtGui import QTextCharFormat, QColor
 
             qfmt = QTextCharFormat()
@@ -332,15 +349,11 @@ class PBSGui(QMainWindow):
         plain = QTextCharFormat()
         cursor.insertText(' ', plain)
         self.txt.setTextCursor(cursor)
+        test = self.txt.document().find('PBS github')
 
-
-    def _selected_bank(self):
-        button = self.bank_group.checkedButton()
-        return button.value
-
-    # ------------------------------------------------------------------
-    # Slots
-    # ------------------------------------------------------------------
+# ------------------------------------------------------------------
+# Slots
+# ------------------------------------------------------------------
 
     def sel(self):
         button = self.bank_group.checkedButton()
