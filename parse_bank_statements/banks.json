@@ -1,0 +1,44 @@
+{
+    "SSKM": {
+	"rootDir": "sskm/gk",
+	"endString": "",
+	"headerKeyword": "Erläuterung",
+	"settings": {
+            "vertical_strategy": "lines",
+            "horizontal_strategy": "text"
+	}
+    },
+
+    "KSKMSE": {
+	"rootDir": "kskmse",
+	"endString": "",
+	"headerKeyword": "Erläuterung",
+	"settings": {
+            "vertical_strategy": "lines",
+            "horizontal_strategy": "text"
+        }
+    },
+
+    "DIBA": {
+	"rootDir": "diba",
+	"endString": "Neuer Saldo",
+	"headerKeyword": "Buchung / Verwendungszweck",
+	"settings": {
+            "vertical_strategy": "explicit",
+            "explicit_vertical_lines": [70, 131, 490, 555],
+            "horizontal_strategy": "text"
+	}
+    },
+
+
+    "VISA": {
+	"rootDir": "sskm/kk",
+	"endString": "Neuer Saldo",
+	"headerKeyword": "Währung",
+	"settings": {
+            "vertical_strategy": "explicit",
+            "explicit_vertical_lines": [40, 81, 120, 300, 360, 450, 515, 580],
+            "horizontal_strategy": "text"
+	}
+    }
+}

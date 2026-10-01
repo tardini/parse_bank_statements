@@ -9,5 +9,4 @@ python -m twine upload --repository pypi dist/*
 
 module purge
 
-pip uninstall parse_bank_statements
-pip install parse_bank_statements
+pip install parse_bank_statements --upgrade

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, sys, re, webbrowser, datetime, logging
+import os, sys, re, webbrowser, datetime, logging, json
 from pathlib import Path
 import encodings.utf_8
 
@@ -16,7 +16,7 @@ from matplotlib.ticker import MaxNLocator
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT
 from matplotlib.figure import Figure
-from parse_bank_statements import banks
+from parse_bank_statements import statement
 from parse_bank_statements import __version__ as version
 
 pbs_home = Path(__file__).resolve().parent
@@ -47,6 +47,11 @@ if not logger.handlers:
     hnd = logging.StreamHandler()
     hnd.setFormatter(fmt)
     logger.addHandler(hnd)
+
+
+fjson = pbs_home / 'banks.json'
+with open(fjson, 'r') as f:
+    banks_d = json.load(f)
 
 
 def plot_time(year_beg, year_end, amount, fig_time):
@@ -360,8 +365,9 @@ class PBSGui(QMainWindow):
         if button is None:
             return
         self.bank_label = button.value
-        self.bank = getattr(banks, self.bank_label.upper())
-        rootDir = baseDir / self.bank.rootDir
+        self.bank = banks_d[self.bank_label.upper()]
+        rootDir = baseDir / self.bank['rootDir']
+        self.bank['label'] = self.bank_label.upper()
         self.dir_wid.setText(str(rootDir))
 
     def info(self):
@@ -381,8 +387,7 @@ class PBSGui(QMainWindow):
             if ext.lower() != '.pdf':
                 continue
             fpdf = fname
-            tras = self.bank()
-            df = banks.fromFile(tras, fpdf)
+            df = statement.fromFile(self.bank, fpdf)
             df_filtered = df[
                 df["descr"].str.contains(
                     self.word,

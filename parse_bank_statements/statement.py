@@ -91,12 +91,12 @@ class STATEMENT:
     def __init__(self, bank, fpdf):
 
         logger.info(fpdf)
-        bank_name = bank.__class__.__name__
+        bank_name = bank['label']
         logger.info(bank_name)
-        settings = {key: val for key, val in bank.settings.items()}
+        settings = {key: val for key, val in bank['settings'].items()}
 
         with pdfplumber.open(fpdf) as pdf:
-            self.header, xh, yh = get_row(pdf.pages[0], bank.headerKeyword)
+            self.header, xh, yh = get_row(pdf.pages[0], bank['headerKeyword'])
             logger.info(self.header)
             for jpage, page in enumerate(pdf.pages):
                 margins = get_table_area(page)
@@ -122,7 +122,7 @@ class STATEMENT:
                     if page_table is not None:
                         self.table += page_table
 
-        self.stripTable(endString=bank.endString)
+        self.stripTable(endString=bank['endString'])
         if self.table is not None: # 0 transactions, only saldo
             self.balance = self.table[-1][-1]
             self.table = self.table[:-1] # Cut Saldo line
@@ -185,45 +185,6 @@ def fromFile(bank, fpdf):
     return df
 
 
-class SSKM:
-    rootDir = 'sskm/gk'
-    endString = None
-    headerKeyword = 'Erläuterung'
-    settings = {
-        "vertical_strategy": "lines",
-        "horizontal_strategy": "text",
-    }
-
-class KSKMSE:
-    rootDir = 'kskmse'
-    endString = None
-    headerKeyword = 'Erläuterung'
-    settings = {
-        "vertical_strategy": "lines",
-        "horizontal_strategy": "text",
-    }
-
-class DIBA:
-    rootDir = 'diba'
-    endString = 'Neuer Saldo'
-    headerKeyword = 'Buchung / Verwendungszweck'
-    settings = {
-        "vertical_strategy": "explicit",
-        "explicit_vertical_lines": [70, 131, 490, 555],
-        "horizontal_strategy": "text",
-    }
-
-class VISA:
-    rootDir = 'sskm/kk'
-    endString='Neuer Saldo'
-    headerKeyword = 'Währung'
-    settings = {
-        "vertical_strategy": "explicit",
-        "explicit_vertical_lines": [40, 81, 120, 300, 360, 450, 515, 580],
-        "horizontal_strategy": "text",
-    }
-
-
 if __name__ == '__main__':
 
     if not logger.handlers:
@@ -231,9 +192,3 @@ if __name__ == '__main__':
         hnd = logging.StreamHandler()
         hnd.setFormatter(fmt)
         logger.addHandler(hnd)
-
-    fpdf = '/shares/users/private/git/bank/sskm/gk/2026/Konto_0000131409-Auszug_2026_0001.PDF'
-    fpdf = '/home/IPP-AD/git/Downloads/10_Oktober25.pdf'
-    sskm = SSKM()
-    df = fromFile(sskm, fpdf)
-    print(df['amount'])
