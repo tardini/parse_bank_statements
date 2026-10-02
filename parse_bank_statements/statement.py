@@ -137,7 +137,7 @@ class STATEMENT:
                 if concat:
                     if ('Zwischensumme' not in concat) and ('Übertrag' not in concat):
                         table.append(row)
-            if endString and endString in row:
+            if endString in row:
                 break
 
         date_rowIndex = [j for j, row in enumerate(table) if isdate(row[0])]
