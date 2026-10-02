@@ -93,7 +93,6 @@ class STATEMENT:
         logger.info(fpdf)
         bank_name = bank['label']
         logger.info(bank_name)
-        settings = {key: val for key, val in bank['settings'].items()}
 
         with pdfplumber.open(fpdf) as pdf:
             self.header, xh, yh = get_row(pdf.pages[0], bank['headerKeyword'])
@@ -115,7 +114,7 @@ class STATEMENT:
                 logger.debug('Page: %s, New  margins: %s', jpage, margins)
 
                 table_page = page.crop(margins)
-                page_table = table_page.extract_table(settings)
+                page_table = table_page.extract_table(bank['settings'])
                 if jpage == 0:
                     self.table = page_table
                 else:
@@ -138,7 +137,7 @@ class STATEMENT:
                 if concat:
                     if ('Zwischensumme' not in concat) and ('Übertrag' not in concat):
                         table.append(row)
-            if endString in row:
+            if endString and endString in row:
                 break
 
         date_rowIndex = [j for j, row in enumerate(table) if isdate(row[0])]
