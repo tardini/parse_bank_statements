@@ -4,13 +4,12 @@ import os, sys, re, webbrowser, datetime, logging, json
 from pathlib import Path
 import encodings.utf_8
 
-from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QLineEdit, QPushButton, QRadioButton, QButtonGroup,
-    QPlainTextEdit, QAction
-)
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget,
+    QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
+    QRadioButton, QButtonGroup, QPlainTextEdit, QAction)
 from PyQt5.QtCore import Qt, QUrl, QEvent
-from PyQt5.QtGui import QFont, QTextCharFormat, QDesktopServices, QTextCursor
+from PyQt5.QtGui import (QFont, QColor, QTextCharFormat,
+    QDesktopServices, QTextCursor)
 
 from matplotlib.ticker import MaxNLocator
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
@@ -55,7 +54,7 @@ with open(fjson, 'r') as f:
 
 
 def plot_time(year_beg, year_end, amount, fig_time):
-
+    '''Plots yearly sums of I/O associated with a keyword, versus time'''
     fig_time.clf()
     fig_time.subplots_adjust(
         left=0.15, bottom=0.15, right=0.95, top=0.92, hspace=0
@@ -115,15 +114,14 @@ class PBSGui(QMainWindow):
 
         self._create_menu()
         self._create_widgets()
-
-        self.sel()
+        self.selectBank()
 
 # ------------------------------------------------------------------
 # GUI creation
 # ------------------------------------------------------------------
 
     def _create_menu(self):
-
+        '''Menubar layout'''
         menubar = self.menuBar()
 
         filemenu = menubar.addMenu('File')
@@ -137,57 +135,42 @@ class PBSGui(QMainWindow):
 
         helpmenu = menubar.addMenu('Help')
         info_action = QAction('Info', self)
-        info_action.triggered.connect(self.info)
+        info_action.triggered.connect(self._set_info_text)
         helpmenu.addAction(info_action)
 
     def _create_widgets(self):
+        '''Selection widgets'''
 
         central = QWidget()
         self.setCentralWidget(central)
-
         main_layout = QVBoxLayout(central)
 
-# --------------------------------------------------------------
 # Parse button
-# --------------------------------------------------------------
 
         bt_layout = QHBoxLayout()
-
         parse_button = QPushButton('Parse statements')
         parse_button.setFixedWidth(130)
         parse_button.clicked.connect(self.parse)
-
         bt_layout.addWidget(parse_button)
         bt_layout.addStretch()
-
         main_layout.addLayout(bt_layout)
 
-# --------------------------------------------------------------
 # Start directory
-# --------------------------------------------------------------
 
         dir_layout = QHBoxLayout()
-
         label = QLabel('Start dir')
         label.setFixedWidth(80)
         dir_layout.addWidget(label)
-
         self.dir_wid = QLineEdit()
         self.dir_wid.setMinimumWidth(400)
-
         dir_layout.addWidget(self.dir_wid)
         dir_layout.addStretch()
-
         main_layout.addLayout(dir_layout)
 
-# --------------------------------------------------------------
-# Bank
-# --------------------------------------------------------------
+# Bank selection
 
         bank_layout = QHBoxLayout()
-
         bank_layout.addWidget(QLabel('Bank'))
-
         self.bank_group = QButtonGroup(self)
 
         for text, value in [
@@ -200,7 +183,7 @@ class PBSGui(QMainWindow):
             rb.value = value
             self.bank_group.addButton(rb)
             bank_layout.addWidget(rb)
-            rb.toggled.connect(self.sel)
+            rb.toggled.connect(self.selectBank)
 
             if value == 'sskm':
                 rb.setChecked(True)
@@ -208,137 +191,89 @@ class PBSGui(QMainWindow):
         bank_layout.addStretch()
         main_layout.addLayout(bank_layout)
 
-# --------------------------------------------------------------
-# Keyword
-# --------------------------------------------------------------
+# Keyword selection
 
         word_layout = QHBoxLayout()
-
         word_layout.addWidget(QLabel('Keyword'))
-
         self.word_wid = QLineEdit('plasma')
         self.word_wid.setMinimumWidth(400)
-
         word_layout.addWidget(self.word_wid)
         word_layout.addStretch()
-
         main_layout.addLayout(word_layout)
 
-# --------------------------------------------------------------
 # Year start
-# --------------------------------------------------------------
 
         year1_layout = QHBoxLayout()
-
         label = QLabel('Year start')
         label.setFixedWidth(80)
         year1_layout.addWidget(label)
-
         self.year_beg = QLineEdit('2015')
         self.year_beg.setFixedWidth(60)
-
         year1_layout.addWidget(self.year_beg)
         year1_layout.addStretch()
-
         main_layout.addLayout(year1_layout)
 
-# --------------------------------------------------------------
 # Year end
-# --------------------------------------------------------------
 
         year2_layout = QHBoxLayout()
-
         label = QLabel('Year end')
         label.setFixedWidth(80)
         year2_layout.addWidget(label)
-
         self.year_end = QLineEdit(str(datetime.datetime.now().year))
         self.year_end.setFixedWidth(60)
-
         year2_layout.addWidget(self.year_end)
         year2_layout.addStretch()
-
         main_layout.addLayout(year2_layout)
 
-# --------------------------------------------------------------
-# Total
-# --------------------------------------------------------------
+# Output total amount
 
         amount_layout = QHBoxLayout()
-
         amount_layout.addWidget(QLabel('Total'))
-
         self.amount_wid = QLineEdit()
         self.amount_wid.setFixedWidth(120)
         self.amount_wid.setReadOnly(True)
-
         amount_layout.addWidget(self.amount_wid)
         amount_layout.addStretch()
-
         main_layout.addLayout(amount_layout)
 
-# --------------------------------------------------------------
-# Output + plot
-# --------------------------------------------------------------
+# Output text (detail)
 
         output_layout = QHBoxLayout()
-
         self.txt = LinkPlainTextEdit()
         self.txt.setUndoRedoEnabled(True)
         self.txt.setFont(QFont('Arial', 10))
         self.txt.setReadOnly(True)
         self.txt.setStyleSheet("color: black;")
         self.txt.setFixedWidth(300)
-
         output_layout.addWidget(self.txt, 1)
 
-# Matplotlib
-        self.fig_time = Figure(figsize=(4., 3.), dpi=100)
+# Plot
 
+        self.fig_time = Figure(figsize=(4., 3.), dpi=100)
         self.can_time = FigureCanvasQTAgg(self.fig_time)
         self.toolbar = NavigationToolbar2QT(self.can_time, self)
-
         plot_layout = QVBoxLayout()
         plot_layout.addWidget(self.toolbar)
         plot_layout.addWidget(self.can_time)
-
         plot_widget = QWidget()
         plot_widget.setLayout(plot_layout)
-
         output_layout.addWidget(plot_widget, 1)
-
         main_layout.addLayout(output_layout, 1)
-
         self._set_info_text()
 
-
-# ------------------------------------------------------------------
-# Helper methods
-# ------------------------------------------------------------------
     def _set_info_text(self):
+        '''Display help text'''
 
         self.txt.clear()
 
-# QPlainTextEdit doesn't interpret HTML, so handle the
-# informational text separately.
         cursor = self.txt.textCursor()
-
         start = 0
-
-        pattern = re.compile(
-            r'<a href="(?P<address>.*?)">(?P<title>.*?)</a>'
-        )
+        pattern = re.compile( r'<a href="(?P<address>.*?)">(?P<title>.*?)</a>' )
 
         for match in pattern.finditer(info_text):
-
             cursor.insertText(info_text[start:match.start()])
             url = match.group('address')
             title = match.group('title')
-
-# QPlainTextEdit doesn't support clickable rich-text
-# hyperlinks, so make the repository link clickable
-# through the QTextCursor's anchor formatting.
-            from PyQt5.QtGui import QTextCharFormat, QColor
 
             qfmt = QTextCharFormat()
             qfmt.setForeground(QColor('blue'))
@@ -357,10 +292,10 @@ class PBSGui(QMainWindow):
         test = self.txt.document().find('PBS github')
 
 # ------------------------------------------------------------------
-# Slots
+# Actions
 # ------------------------------------------------------------------
 
-    def sel(self):
+    def selectBank(self):
         button = self.bank_group.checkedButton()
         if button is None:
             return
@@ -370,11 +305,8 @@ class PBSGui(QMainWindow):
         self.bank['label'] = self.bank_label.upper()
         self.dir_wid.setText(str(rootDir))
 
-    def info(self):
-        self._set_info_text()
-
     def parse_year(self, dir_in):
-        '''Check for given words in statements, case insensitive'''
+        '''Check for given keyword in statements and sum up amounts for a given year'''
 
         logger.debug(dir_in)
 
@@ -409,6 +341,7 @@ class PBSGui(QMainWindow):
         return tot_year
 
     def parse(self):
+        '''Parses all statements for a given keyword'''
 
         self.word = self.word_wid.text().strip()
 

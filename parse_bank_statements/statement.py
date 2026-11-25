@@ -17,8 +17,8 @@ translate_header = {'Datum': 'date', 'Wert': 'date2', 'Erläuterung': 'descr',
 
 
 def isdate(s):
+    '''Check whether a given string is a date representation'''
     s = s.strip().replace(' ','')
-#    s = s.strip()
     for fmt in ("%d.%m.%Y", "%d.%m.%y"):
         try:
             datetime.strptime(s, fmt)
@@ -29,6 +29,7 @@ def isdate(s):
 
 
 def to_numeric(df_col):
+    '''Convert German amount-like string "1.456,67-" into a float'''
     def convert_one(s):
         s = s.strip()
         if not s:
@@ -47,6 +48,7 @@ def to_numeric(df_col):
 
 
 def get_word_pos(words, keyword):
+    '''Gets the x, y coordinates of the first occurence of a keyword in a PDF file'''
     for word in words:
         if word['text'] == keyword:
             return word['x0'], word['bottom']
@@ -54,6 +56,7 @@ def get_word_pos(words, keyword):
 
 
 def get_row(page, keyword):
+    '''Returns a list of words from the line containing the 1st occurrence of a given keyword'''
     words = page.extract_words(x_tolerance=2, keep_blank_chars=True)
     x0, y0 = get_word_pos(words, keyword)
     words_in_line = [word for word in words if abs(word['bottom'] - y0) < 1]
@@ -62,7 +65,7 @@ def get_row(page, keyword):
 
 
 def get_table_area(page, bank=''):
-
+    '''Get the margins of a pag using the upper- and lowermost horizontal lines'''
 # Get all horizontal lines
     hlines = [l for l in page.lines if l['height'] == 0 and l["width"] > 20]
 
@@ -86,7 +89,7 @@ def get_table_area(page, bank=''):
 
 
 class STATEMENT:
-
+    '''Parses statement pages from an input PDF file'''
 
     def __init__(self, bank, fpdf):
 
@@ -128,7 +131,7 @@ class STATEMENT:
 
 
     def stripTable(self, endString='Neuer Saldo'):
-
+        '''Cuts file-parsing at endString, gets lines with dates to group transactions'''
 # Remove empty rows or rows containing given keywords
         table = []
         for row in self.table:
@@ -151,7 +154,7 @@ class STATEMENT:
 
 
     def to_df(self):
-
+        '''Groups transactions one by one into a pandas dataFrame'''
         blocks_d = {}
         if self.table is None: # PDF with o transactions, just Saldo
             columns = [translate_header[word] for word in self.header]
@@ -172,6 +175,8 @@ class STATEMENT:
 
 
 def fromFile(bank, fpdf):
+    '''Reads csv files into pandas dataFrame; if csv does not exist, the original PDF file
+is converted into a dataFrame and stored as csv'''
     logger.debug(fpdf)
     filename = Path(fpdf)
     fcsv = filename.with_suffix('.csv')

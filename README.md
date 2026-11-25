@@ -21,5 +21,7 @@ Edit banks.py, inserting the actual full root-paths containing the bank statemen
 $PBS_HOME/pbs.py
 or
 python
+```pycon
 >>>from parse_bank_statements import pbs
 >>>pbs.main()
+```
