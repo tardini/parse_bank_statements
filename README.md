@@ -13,14 +13,14 @@ PDF files are parsed with the package pdfplumber
 Supported banks: SSKM-Gyrokonto, Ing.Diba, SSKM-Visa-Kreditkarte, KSKMSE
 
 Usage:
-
+```
 pip install parse_bank_statements
+```
+Edit `banks.json`, inserting the actual sub-paths containing the bank statements. `baseDir`, the common root directory for all banks, is set in `pbs.py`.
 
-Edit banks.py, inserting the actual full root-paths containing the bank statements
-
-$PBS_HOME/pbs.py
+`$PBS_HOME/pbs.py`
 or
-python
+`python`
 ```pycon
 >>>from parse_bank_statements import pbs
 >>>pbs.main()
