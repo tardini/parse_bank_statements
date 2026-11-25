@@ -22,8 +22,8 @@ Usage:
 pip install parse_bank_statements
 ```
 
-`$PBS_HOME/pbs.py`
-or
+`$PBS_HOME/pbs.py`<br>
+or<br>
 `python`
 ```pycon
 >>>from parse_bank_statements import pbs
