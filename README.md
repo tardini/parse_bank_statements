@@ -1,9 +1,11 @@
 This python GUI-based tool allows to browse bank statements, or any column-structured PDF files, if the format is rigid.
 
 The app expects a directory structure of the type:
+```text
 - <baseDir>/<bank_path>/2018
 - <baseDir>/<bank_path>/2019
 - <baseDir>/<bank_path>/2020
+```
 and the statements to be PDF files.
 
 `banks.json` contains the actual sub-paths with the bank statements for each bank. Edit it according to your directory tree.<br>
