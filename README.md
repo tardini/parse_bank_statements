@@ -16,7 +16,8 @@ Usage:
 ```
 pip install parse_bank_statements
 ```
-Edit `banks.json`, inserting the actual sub-paths containing the bank statements. `baseDir`, the common root directory for all banks, is set in `pbs.py`.
+Edit `banks.json`, inserting the actual sub-paths containing the bank statements.<br>
+`baseDir`, the common root directory for all banks, is set in `pbs.py`.
 
 `$PBS_HOME/pbs.py`
 or
